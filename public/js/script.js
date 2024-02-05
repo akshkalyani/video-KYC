@@ -89,7 +89,8 @@ socket.on("created", function () {
     // .getUserMedia takes 3 argument
     {
       audio: true,
-      video: { width: 1280, height: 720 },
+      video: { width: 1280, height: 720, frameRate: { ideal: 30, max: 60 } },
+      audio: { echoCancellation: true, noiseSuppression: true },
     },
     function (stream) {
       userStream = stream;
@@ -114,6 +115,7 @@ socket.on("joined", function () {
     {
       audio: true,
       video: { width: 1280, height: 720, frameRate: { ideal: 30, max: 60 } },
+      audio: { echoCancellation: true, noiseSuppression: true },
     },
     function (stream) {
       userStream = stream;
