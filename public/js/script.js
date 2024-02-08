@@ -4,8 +4,8 @@ var videoChatForm = document.getElementById("video-chat-form");
 var videoChatRooms = document.getElementById("video-chat-rooms");
 var joinBtn = document.getElementById("join");
 var roomInput = document.getElementById("roomName");
-var userVideo = document.getElementById("user-video");
-var peerVideo = document.getElementById("peer-video");
+const userVideo = document.getElementById("user-video");
+const peerVideo = document.getElementById("peer-video");
 var otpGeneratorBtn = document.getElementById("otpGenerator");
 
 // working with buttons
@@ -72,7 +72,6 @@ HideCamBtn.addEventListener("click", function () {
   hideCamFlag = !hideCamFlag;
   if (hideCamFlag) {
     userStream.getTracks()[1].enabled = false;
-
     HideCamBtn.textContent = "Show Cam";
   } else {
     userStream.getTracks()[1].enabled = true;
@@ -82,7 +81,6 @@ HideCamBtn.addEventListener("click", function () {
 });
 
 // Client Side event is created
-
 socket.on("created", function () {
   creator = true;
   navigator.getUserMedia(
@@ -104,7 +102,7 @@ socket.on("created", function () {
     },
     function (error) {
       //3rd argument is error which is handled below.
-      alert("Not accessed");
+      alert("Browser cannot be acessed");
     }
   );
 });

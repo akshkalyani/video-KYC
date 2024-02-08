@@ -6,6 +6,7 @@ const screenshot = require("screenshot-desktop");
 let fs = require("fs");
 const path = require("path");
 const sqlite3 = require("sqlite3").verbose();
+const { Script } = require("vm");
 
 app.set("view engine", "ejs");
 app.set("views", __dirname);
@@ -13,7 +14,6 @@ app.set("views", __dirname);
 // setting the directory for the views
 app.set("views", "views");
 
-// const favicon = require("serve-favicon");
 const jwt = require("jsonwebtoken");
 
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -26,21 +26,19 @@ const server = app.listen(port, () => {
 });
 
 const userRoute = require("./route/basicRoute");
-const { Script } = require("vm");
+
 app.use("/", userRoute);
 
 const db = new sqlite3.Database("userlog.db");
 
 db.run(
-  "CREATE TABLE IF NOT EXISTS contacts (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT, password TEXT, phone INT, message TEXT)"
+  "CREATE TABLE IF NOT EXISTS contacts (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT, password TEXT, phone INT)"
 );
 app.get("/contact_form/v1", (req, res) => {
   res.sendFile(path.join(__dirname, "ContactForm.html"));
 });
 
-
 // Route to render the admin page
-
 app.get("/admin", (req, res) => {
   // Fetch all data from SQLite and render the admin page
   db.all("SELECT * FROM contacts", (err, rows) => {
@@ -62,7 +60,7 @@ app.post("/api/register", (req, res) => {
   const userEmail = req.body.email;
   const userPassword = req.body.password;
   const userPhone = req.body.phone;
-  const userMessage = req.body.message;
+
 
   // Checks the mail whether the @chola.in
   if (!userEmail.endsWith("@chola.in")) {
@@ -73,10 +71,10 @@ app.post("/api/register", (req, res) => {
   // encodedPassword encodes the Password into string of base64
   const encodedPassword = Buffer.from(userPassword, "utf-8").toString("base64");
 
-  // Insert data into SQLite database
+  // Inserting  data into SQLite database
   db.run(
-    "INSERT INTO contacts (name, email, password, phone, message) VALUES (?, ?, ?, ?, ?)",
-    [userName, userEmail, userPassword, userPhone, userMessage],
+    "INSERT INTO contacts (name, email, password, phone) VALUES (?, ?, ?, ?)",
+    [userName, userEmail, userPassword, userPhone],
     function (err) {
       if (err) {
         return console.error(err.message);
@@ -88,6 +86,7 @@ app.post("/api/register", (req, res) => {
   res.redirect("/cholaReg");
 });
 
+// deleting all the logs from the database
 app.get("/api/delete-all-logs", (req, res) => {
   db.run("DELETE FROM contacts", function (err) {
     if (err) {
