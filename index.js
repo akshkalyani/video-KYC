@@ -2,22 +2,105 @@ const express = require("express");
 const app = express();
 const bodyParser = require("body-parser");
 const socket = require("socket.io");
+const screenshot = require("screenshot-desktop");
+let fs = require("fs");
+const path = require("path");
+const sqlite3 = require("sqlite3").verbose();
+
 app.set("view engine", "ejs");
-app.set("views", "./views"); // setting the directory for the views
+app.set("views", __dirname);
+
+// setting the directory for the views
+app.set("views", "views");
+
 // const favicon = require("serve-favicon");
 const jwt = require("jsonwebtoken");
 
 app.use(bodyParser.urlencoded({ extended: true }));
-
 app.use(express.static("public"));
+app.use(express.json());
 
 const port = 3309;
 const server = app.listen(port, () => {
   console.log(`listening on ${port}`);
 });
 
-const userRoute = require("./routes/userRoute");
+const userRoute = require("./route/basicRoute");
+const { Script } = require("vm");
 app.use("/", userRoute);
+
+const db = new sqlite3.Database("userlog.db");
+
+db.run(
+  "CREATE TABLE IF NOT EXISTS contacts (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT, password TEXT, phone INT, message TEXT)"
+);
+app.get("/contact_form/v1", (req, res) => {
+  res.sendFile(path.join(__dirname, "ContactForm.html"));
+});
+
+
+// Route to render the admin page
+
+app.get("/admin", (req, res) => {
+  // Fetch all data from SQLite and render the admin page
+  db.all("SELECT * FROM contacts", (err, rows) => {
+    if (err) {
+      console.error(err.message);
+      res.status(500).send("Internal Server Error");
+    } else {
+      res.render("admin", { data: rows });
+    }
+  });
+});
+
+app.get("/cholaReg", (req, res) => {
+  res.render("cholaReg");
+});
+
+app.post("/api/register", (req, res) => {
+  const userName = req.body.name;
+  const userEmail = req.body.email;
+  const userPassword = req.body.password;
+  const userPhone = req.body.phone;
+  const userMessage = req.body.message;
+
+  // Checks the mail whether the @chola.in
+  if (!userEmail.endsWith("@chola.in")) {
+    return res
+      .status(404)
+      .send("Invalid email domain. Please use an @chola.in email address.");
+  }
+  // encodedPassword encodes the Password into string of base64
+  const encodedPassword = Buffer.from(userPassword, "utf-8").toString("base64");
+
+  // Insert data into SQLite database
+  db.run(
+    "INSERT INTO contacts (name, email, password, phone, message) VALUES (?, ?, ?, ?, ?)",
+    [userName, userEmail, userPassword, userPhone, userMessage],
+    function (err) {
+      if (err) {
+        return console.error(err.message);
+      }
+      console.log(`A new log has been added with id ${this.lastID}`);
+      console.log(`${userEmail} || ${userPassword}`);
+    }
+  );
+  res.redirect("/cholaReg");
+});
+
+app.get("/api/delete-all-logs", (req, res) => {
+  db.run("DELETE FROM contacts", function (err) {
+    if (err) {
+      console.error(err.message);
+      res.status(500).send("Internal Server Error");
+    } else {
+      console.log("All records have been deleted");
+
+      // Respond with a success message or other appropriate response
+      res.json({ message: "All records have been deleted successfully" });
+    }
+  });
+});
 
 // --- JOINING THE ROOM USING socket ---
 //socket io working with the signaling server

@@ -6,6 +6,7 @@ var joinBtn = document.getElementById("join");
 var roomInput = document.getElementById("roomName");
 var userVideo = document.getElementById("user-video");
 var peerVideo = document.getElementById("peer-video");
+var otpGeneratorBtn = document.getElementById("otpGenerator");
 
 // working with buttons
 var BtnGroup = document.getElementById("btn-group");
