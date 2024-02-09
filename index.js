@@ -29,8 +29,10 @@ const userRoute = require("./route/basicRoute");
 
 app.use("/", userRoute);
 
+//defining the database "userlog.db"
 const db = new sqlite3.Database("userlog.db");
 
+//creating the Databse
 db.run(
   "CREATE TABLE IF NOT EXISTS contacts (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT, password TEXT, phone INT)"
 );
@@ -38,6 +40,7 @@ app.get("/contact_form/v1", (req, res) => {
   res.sendFile(path.join(__dirname, "ContactForm.html"));
 });
 
+// API to get the screenshot
 app.get("/screenshot", async (req, res) => {
   try {
     const img = await screenshot();
