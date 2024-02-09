@@ -15,6 +15,7 @@
     "full": "^1.0.1",
     "html2canvas": "^1.4.1",
     "jsonwebtoken": "^9.0.2",
+    "node-rtsp-recorder": "^1.0.3",
     "node-webrtc": "^0.0.0",
     "nodejs": "^0.0.0",
     "nodemon": "^3.0.3",
