@@ -22,7 +22,7 @@ app.use(express.json());
 
 const port = 3309;
 const server = app.listen(port, () => {
-  console.log(`listening on ${port}`);
+  console.log(`listening on http://localhost:${port}`);
 });
 
 const userRoute = require("./route/basicRoute");
