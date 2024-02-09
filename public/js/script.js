@@ -247,16 +247,16 @@ socket.on("leave", function () {
 
   // Cleanup peerVideo
   if (peerVideo.srcObject) {
-    peerVideo.srcObject.getTracks().forEach(track => track.stop());
+    peerVideo.srcObject.getTracks().forEach((track) => track.stop());
     peerVideo.srcObject = null;
-}
+  }
 
-// Close rtcPeerConnection
-if (rtcPeerConnection) {
+  // Close rtcPeerConnection
+  if (rtcPeerConnection) {
     rtcPeerConnection.ontrack = null;
     rtcPeerConnection.onicecandidate = null;
     rtcPeerConnection.close();
-}
+  }
 });
 function OnIceCandidateFunction(event) {
   if (event.candidate) {
@@ -269,4 +269,11 @@ function onTrackFunction(event) {
   peerVideo.onloadedmetadata = function (e) {
     peerVideo.play(); // it is used to play the video using .onloadmetadata using peerVideo.play -> plays peer video
   };
+}
+
+// Check if socket is connected
+if (socket.connected) {
+  console.log("Socket connected");
+} else {
+  console.log("Socket not connected");
 }
