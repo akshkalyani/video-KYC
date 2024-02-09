@@ -3,7 +3,7 @@ const app = express();
 const bodyParser = require("body-parser");
 const socket = require("socket.io");
 const screenshot = require("screenshot-desktop");
-let fs = require("fs");
+let fs = require("fs"); // calling file system modules :- built in module
 const path = require("path");
 const sqlite3 = require("sqlite3").verbose();
 const { Script } = require("vm");
@@ -38,6 +38,17 @@ app.get("/contact_form/v1", (req, res) => {
   res.sendFile(path.join(__dirname, "ContactForm.html"));
 });
 
+app.get("/screenshot", async (req, res) => {
+  try {
+    const img = await screenshot();
+    res.type("image/png");
+    res.send(img);
+  } catch (error) {
+    console.error("Error capturing screenshot:", error);
+    res.status(500).send("Error capturing screenshot");
+  }
+});
+
 // Route to render the admin page
 app.get("/admin", (req, res) => {
   // Fetch all data from SQLite and render the admin page
@@ -60,7 +71,6 @@ app.post("/api/register", (req, res) => {
   const userEmail = req.body.email;
   const userPassword = req.body.password;
   const userPhone = req.body.phone;
-
 
   // Checks the mail whether the @chola.in
   if (!userEmail.endsWith("@chola.in")) {

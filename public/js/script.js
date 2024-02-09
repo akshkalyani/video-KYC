@@ -7,6 +7,7 @@ var roomInput = document.getElementById("roomName");
 const userVideo = document.getElementById("user-video");
 const peerVideo = document.getElementById("peer-video");
 var otpGeneratorBtn = document.getElementById("otpGenerator");
+var screenshotButton = document.getElementById("screen-shot");
 
 // working with buttons
 var BtnGroup = document.getElementById("btn-group");
@@ -53,6 +54,24 @@ joinBtn.addEventListener("click", function () {
   } else {
     roomName = roomInput.value;
     socket.emit("Join", roomName); // we are hiting an event called .emit which passes an argument "join" and gives room.value i.e. the value entered by them to connect btw server and client side. "Updated globally as roomInput"
+  }
+});
+
+// on clicking the screenshotButton get triggered and function invokes
+screenshotButton.addEventListener("click", async () => {
+  try {
+    const response = await fetch("/screenshot");
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "screenshot.png";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error taking screenshot:", error);
   }
 });
 
@@ -226,11 +245,18 @@ socket.on("leave", function () {
     peerVideo.srcObject.getTracks()[1].stop();
   }
 
-  if (rtcPeerConnection) {
+  // Cleanup peerVideo
+  if (peerVideo.srcObject) {
+    peerVideo.srcObject.getTracks().forEach(track => track.stop());
+    peerVideo.srcObject = null;
+}
+
+// Close rtcPeerConnection
+if (rtcPeerConnection) {
     rtcPeerConnection.ontrack = null;
     rtcPeerConnection.onicecandidate = null;
     rtcPeerConnection.close();
-  }
+}
 });
 function OnIceCandidateFunction(event) {
   if (event.candidate) {
