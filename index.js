@@ -45,6 +45,7 @@ db.run(
   "CREATE TABLE IF NOT EXISTS customer_Details (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE, email TEXT UNIQUE, password TEXT, phone INT UNIQUE, loggedIn BOOLEAN DEFAULT 0)"
 );
 
+// user registration in customer_Details
 app.post("/api/register", (req, res) => {
   const userName = req.body.name;
   const userEmail = req.body.email;
@@ -61,7 +62,8 @@ app.post("/api/register", (req, res) => {
   // Check if the username already exists in the database
   db.get(
     "SELECT * FROM customer_Details WHERE name = ?",
-    [userName],    (err, row) => {
+    [userName],
+    (err, row) => {
       if (err) {
         return console.error(err.message);
       }
@@ -91,6 +93,8 @@ app.post("/api/register", (req, res) => {
     }
   );
 });
+
+// verifying the details using JWT Auth
 app.post("/api-jwt", (req, res) => {
   const userEmail = req.body.email;
   const userPassword = req.body.password;
@@ -132,6 +136,7 @@ app.post("/api-jwt", (req, res) => {
   );
 });
 
+//logout from the session by creating the loggedIn flag 
 app.post("/logout", (req, res) => {
   // Extract the JWT token from the request cookies
   const token = req.cookies.token;
@@ -167,7 +172,7 @@ app.post("/logout", (req, res) => {
   });
 });
 
-// API to get the screenshot
+// API to get the screenshot of the video call page.
 app.get("/screenshot", async (req, res) => {
   try {
     const img = await screenshot();
