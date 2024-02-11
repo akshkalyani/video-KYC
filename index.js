@@ -126,8 +126,12 @@ app.post("/api-jwt", (req, res) => {
             if (err) {
               return console.error(err.message);
             }
-            const token = jwt.sign({ email: row.email }, secretKey);
+            const token = jwt.sign({ email: row.email }, secretKey, {
+              expiresIn: "1h",
+            });
+            console.log({ token });
             res.cookie("token", token, { httpOnly: true });
+
             res.redirect("/cholaReg");
           }
         );
@@ -136,7 +140,7 @@ app.post("/api-jwt", (req, res) => {
   );
 });
 
-//logout from the session by creating the loggedIn flag 
+//logout from the session by creating the loggedIn flag
 app.post("/logout", (req, res) => {
   // Extract the JWT token from the request cookies
   const token = req.cookies.token;
