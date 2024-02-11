@@ -8,6 +8,7 @@ const userVideo = document.getElementById("user-video");
 const peerVideo = document.getElementById("peer-video");
 var otpGeneratorBtn = document.getElementById("otpGenerator");
 var screenshotButton = document.getElementById("screen-shot");
+var logoutBtn = document.getElementById("logout");
 
 // working with buttons
 var BtnGroup = document.getElementById("btn-group");
@@ -55,6 +56,25 @@ joinBtn.addEventListener("click", function () {
     roomName = roomInput.value;
     socket.emit("Join", roomName); // we are hiting an event called .emit which passes an argument "join" and gives room.value i.e. the value entered by them to connect btw server and client side. "Updated globally as roomInput"
   }
+});
+
+// Add event listener for logout button
+logoutBtn.addEventListener("click", function () {
+  fetch("/logout", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "same-origin",
+  })
+    .then(function (response) {
+      if (response.redirected) {
+        window.location.href = response.url;
+      }
+    })
+    .catch(function (error) {
+      console.error("Error logging out:", error);
+    });
 });
 
 // on clicking the screenshotButton get triggered and function invokes
@@ -270,10 +290,42 @@ function onTrackFunction(event) {
     peerVideo.play(); // it is used to play the video using .onloadmetadata using peerVideo.play -> plays peer video
   };
 }
+var video = document.querySelector("video");
+var streamRecorder;
+var webcamstream;
 
-// Check if socket is connected
-if (socket.connected) {
-  console.log("Socket connected");
+if (navigator.getUserMedia) {
+  navigator.getUserMedia(
+    { audio: true, video: true },
+    function (stream) {
+      video.src = window.URL.createObjectURL(stream);
+      webcamstream = stream;
+      //  streamrecorder = webcamstream.record();
+    },
+    onVideoFail
+  );
 } else {
-  console.log("Socket not connected");
+  alert("failed");
+}
+
+function startRecording() {
+  streamRecorder = webcamstream.record();
+  setTimeout(stopRecording, 10000);
+}
+function stopRecording() {
+  streamRecorder.getRecordedData(postVideoToServer);
+}
+function postVideoToServer(videoblob) {
+  var data = {};
+  data.video = videoblob;
+  data.metadata = "test metadata";
+  data.action = "upload_video";
+  jQuery.post(
+    "http://www.foundthru.co.uk/uploadvideo.php",
+    data,
+    onUploadSuccess
+  );
+}
+function onUploadSuccess() {
+  alert("video uploaded");
 }

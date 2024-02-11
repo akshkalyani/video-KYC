@@ -6,69 +6,44 @@ const screenshot = require("screenshot-desktop");
 let fs = require("fs"); // calling file system modules :- built in module
 const path = require("path");
 const sqlite3 = require("sqlite3").verbose();
+const cookieParser = require("cookie-parser");
 const { Script } = require("vm");
-
+const jwt = require("jsonwebtoken");
 
 app.set("view engine", "ejs");
 app.set("views", __dirname);
-
-// setting the directory for the views
-app.set("views", "views");
-
-const jwt = require("jsonwebtoken");
+app.set("views", "views"); // setting the directory for the views
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 app.use(express.json());
 
+const secretKey = "Navneet";
 const port = 3309;
-const server = app.listen(port, () => {
-  console.log(`listening on ${port}`);
+
+app.get("/login", (req, res) => {
+  res.render("login");
+});
+app.get("/cholaReg", (req, res) => {
+  res.render("cholaReg");
+});
+
+app.get("/contact_form/v1", (req, res) => {
+  res.sendFile(path.join(__dirname, "ContactForm.html"));
 });
 
 const userRoute = require("./route/basicRoute");
 
 app.use("/", userRoute);
+app.use(cookieParser());
 
-//defining the database "userlog.db"
-const db = new sqlite3.Database("userlog.db");
+// Define the database connection
+const db = new sqlite3.Database("E-KYC.db");
 
-//creating the Databse
+// Create the contacts table if it doesn't exist
 db.run(
-  "CREATE TABLE IF NOT EXISTS contacts (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT, password TEXT, phone INT)"
+  "CREATE TABLE IF NOT EXISTS customer_Details (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE, email TEXT UNIQUE, password TEXT, phone INT UNIQUE, loggedIn BOOLEAN DEFAULT 0)"
 );
-app.get("/contact_form/v1", (req, res) => {
-  res.sendFile(path.join(__dirname, "ContactForm.html"));
-});
-
-// API to get the screenshot
-app.get("/screenshot", async (req, res) => {
-  try {
-    const img = await screenshot();
-    res.type("image/png");
-    res.send(img);
-  } catch (error) {
-    console.error("Error capturing screenshot:", error);
-    res.status(500).send("Error capturing screenshot");
-  }
-});
-
-// Route to render the admin page
-app.get("/admin", (req, res) => {
-  // Fetch all data from SQLite and render the admin page
-  db.all("SELECT * FROM contacts", (err, rows) => {
-    if (err) {
-      console.error(err.message);
-      res.status(500).send("Internal Server Error");
-    } else {
-      res.render("admin", { data: rows });
-    }
-  });
-});
-
-app.get("/cholaReg", (req, res) => {
-  res.render("cholaReg");
-});
 
 app.post("/api/register", (req, res) => {
   const userName = req.body.name;
@@ -82,27 +57,144 @@ app.post("/api/register", (req, res) => {
       .status(404)
       .send("Invalid email domain. Please use an @chola.in email address.");
   }
-  // encodedPassword encodes the Password into string of base64
-  const encodedPassword = Buffer.from(userPassword, "utf-8").toString("base64");
 
-  // Inserting  data into SQLite database
-  db.run(
-    "INSERT INTO contacts (name, email, password, phone) VALUES (?, ?, ?, ?)",
-    [userName, userEmail, userPassword, userPhone],
-    function (err) {
+  // Check if the username already exists in the database
+  db.get(
+    "SELECT * FROM customer_Details WHERE name = ?",
+    [userName],    (err, row) => {
       if (err) {
         return console.error(err.message);
       }
-      console.log(`A new log has been added with id ${this.lastID}`);
-      console.log(`${userEmail} || ${userPassword}`);
+      if (row) {
+        // Username already exists
+        return res.status(400).send("Username already exists.");
+      } else {
+        // encodedPassword encodes the Password into string of base64
+        const encodedPassword = Buffer.from(userPassword, "utf-8").toString(
+          "base64"
+        );
+
+        // Inserting data into SQLite database
+        db.run(
+          "INSERT INTO customer_Details (name, email, password, phone) VALUES (?, ?, ?, ?)",
+          [userName, userEmail, userPassword, userPhone],
+          function (err) {
+            if (err) {
+              return console.error(err.message);
+            }
+            console.log(`A new log has been added with id ${this.lastID}`);
+            console.log(`${userEmail} || ${userPassword}`);
+          }
+        );
+        res.redirect("/login");
+      }
     }
   );
-  res.redirect("/cholaReg");
+});
+app.post("/api-jwt", (req, res) => {
+  const userEmail = req.body.email;
+  const userPassword = req.body.password;
+
+  db.get(
+    "SELECT * FROM customer_Details WHERE email = ?",
+    [userEmail],
+    (err, row) => {
+      if (err) {
+        return console.error(err.message);
+      }
+      if (!row) {
+        return res.status(401).send("Invalid email or password");
+      } else {
+        if (row.password !== userPassword) {
+          return res.status(401).send("Invalid email or password");
+        }
+
+        // Check if the user is already logged in
+        if (row.loggedIn) {
+          return res.status(401).send("User is already logged in");
+        }
+
+        // Set loggedIn flag to true in the database
+        db.run(
+          "UPDATE customer_Details SET loggedIn = 1 WHERE email = ?",
+          [userEmail],
+          (err) => {
+            if (err) {
+              return console.error(err.message);
+            }
+            const token = jwt.sign({ email: row.email }, secretKey);
+            res.cookie("token", token, { httpOnly: true });
+            res.redirect("/cholaReg");
+          }
+        );
+      }
+    }
+  );
+});
+
+app.post("/logout", (req, res) => {
+  // Extract the JWT token from the request cookies
+  const token = req.cookies.token;
+
+  if (!token) {
+    // If there's no token, the user is not authenticated, so redirect them to the login page
+    return res.redirect("/login");
+  }
+
+  // Verify the JWT token to get the user's email
+  jwt.verify(token, secretKey, (err, decoded) => {
+    if (err) {
+      // If there's an error with the token, redirect the user to the login page
+      return res.redirect("/login");
+    }
+
+    // Extract the user's email from the decoded token
+    const userEmail = decoded.email;
+
+    // Clear the loggedIn flag in the database for the current user
+    db.run(
+      "UPDATE customer_Details SET loggedIn = 0 WHERE email = ?",
+      [userEmail],
+      (err) => {
+        if (err) {
+          return console.error(err.message);
+        }
+        // Redirect the user to the login page after logging out
+        res.clearCookie("token"); // Clear the token from the cookies
+        res.redirect("/login");
+      }
+    );
+  });
+});
+
+// API to get the screenshot
+app.get("/screenshot", async (req, res) => {
+  try {
+    const img = await screenshot();
+    res.type("image/png"); //type--> image/png
+    res.send(img);
+  } catch (error) {
+    console.error("Error capturing screenshot:", error);
+    res.status(500).send("Error capturing screenshot");
+  }
+});
+
+// Route to render the admin page
+app.get("/admin", (req, res) => {
+  // Fetch all data from SQLite and render the admin page
+  db.all("SELECT * FROM customer_Details", (err, rows) => {
+    if (err) {
+      console.error(err.message);
+      res.status(500).send("Internal Server Error");
+    } else {
+      res.render("admin", { data: rows });
+    }
+  });
 });
 
 // deleting all the logs from the database
 app.get("/api/delete-all-logs", (req, res) => {
-  db.run("DELETE FROM contacts", function (err) {
+  db.run("DELETE FROM customer_Details", function (err) {
     if (err) {
       console.error(err.message);
       res.status(500).send("Internal Server Error");
@@ -110,9 +202,13 @@ app.get("/api/delete-all-logs", (req, res) => {
       console.log("All records have been deleted");
 
       // Respond with a success message or other appropriate response
-      res.json({ message: "All records have been deleted successfully" });
+      // res.json({ message: "All records have been deleted successfully" });
     }
   });
+});
+
+const server = app.listen(port, () => {
+  console.log(`listening on ${port}`);
 });
 
 // --- JOINING THE ROOM USING socket ---
