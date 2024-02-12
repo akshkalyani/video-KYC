@@ -6,6 +6,9 @@
     <title>Video Call meeting</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.3/socket.io.js"></script>
     <script src="https://cdn.socket.io/socket.io-3.0.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.min.js" integrity="sha512-WW8/jxkELe2CAiE4LvQfwm1rajOS8PHasCCx+knHG0gBHt8EXxS6T6tJRTGuDQVnluuAvMxWF4j8SNFDKceLFg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/5.0.0-alpha1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap-grid.min.css" integrity="sha512-ZuRTqfQ3jNAKvJskDAU/hxbX1w25g41bANOVd1Co6GahIe2XjM6uVZ9dh0Nt3KFCOA061amfF2VeL60aJXdwwQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link href="css/style.css" rel="stylesheet" />
 </head>
 
@@ -28,8 +31,43 @@
         <!-- <button id="generate-otp">OTP</button> -->
         <button id="screen-shot">ScreenShot</button>
     </div>
-
+        <button id="generate-otp">OT1P</button>
+        <button type="button" class="btn btn-primary" id="toastbtn">Generate OTP</button>
+      
+            <!-- Toast container -->
+            <div id="toastNotice" class="toast" data-delay="5000">
+              <div class="toast-header">
+                <strong class="mr-auto">OTP Generator</strong>
+                <small>Just now</small>
+                <button type="button" class="ml-2 mb-1 close" data-dismiss="toast">
+                  <span>&times;</span>
+                </button>
+              </div>
+              <div class="toast-body">
+                Your OTP is: <span id="otpValue">XXXXXX</span>
+              </div>
+            </div>
+    </div>
+    
     <script src="js/script.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/5.0.0-alpha1/js/bootstrap.min.js"></script>
+    <script>
+      document.getElementById("toastbtn").onclick = function() {
+        // Generate a random 6-digit OTP
+        var otp = Math.floor(100000 + Math.random() * 900000);
+
+        // Update the OTP value in the toast message
+        document.getElementById('otpValue').textContent = otp;
+        socket.emit('generate-otp', { otp: otp, room: roomName }); // Assuming `roomName` is the ID of the room
+
+        // Initialize and show the toast
+        var myAlert = document.getElementById('toastNotice'); // Select the toast element
+        var bsAlert = new bootstrap.Toast(myAlert); // Initialize it
+        bsAlert.show(); // Show it
+      };
+      
+    </script>
 
 </body>
 

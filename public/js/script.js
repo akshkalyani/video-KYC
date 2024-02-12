@@ -3,6 +3,8 @@ var socket = io();
 var videoChatForm = document.getElementById("video-chat-form");
 var videoChatRooms = document.getElementById("video-chat-rooms");
 var joinBtn = document.getElementById("join");
+var testBtn = document.getElementById("test");
+
 var roomInput = document.getElementById("roomName");
 const userVideo = document.getElementById("user-video");
 const peerVideo = document.getElementById("peer-video");
@@ -48,6 +50,12 @@ navigator.getUserMedia =
   navigator.webkitGetUserMedia ||
   navigator.mozGetUserMedia;
 
+
+  testBtn.addEventListener("click", function () {
+    $('.toast').toast('show');
+   alert(1)
+  });
+  
 joinBtn.addEventListener("click", function () {
   //.addEventListener is used to invoke the click function which checks the below condition.
   if (roomInput.value == "") {
@@ -277,6 +285,14 @@ socket.on("leave", function () {
     rtcPeerConnection.onicecandidate = null;
     rtcPeerConnection.close();
   }
+});
+
+socket.on('connection', (socket) => {
+  // Listen for the 'generate-otp' event
+  socket.on('generate-otp', (data) => {
+    // Broadcast the OTP to all clients in the room
+    io.to(data.room).emit('otp-generated', { otp: data.otp });
+  });
 });
 function OnIceCandidateFunction(event) {
   if (event.candidate) {
