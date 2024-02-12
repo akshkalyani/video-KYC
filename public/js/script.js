@@ -6,9 +6,11 @@ var joinBtn = document.getElementById("join");
 var testBtn = document.getElementById("test");
 
 var roomInput = document.getElementById("roomName");
-var userVideo = document.getElementById("user-video");
-var peerVideo = document.getElementById("peer-video");
+const userVideo = document.getElementById("user-video");
+const peerVideo = document.getElementById("peer-video");
 var otpGeneratorBtn = document.getElementById("otpGenerator");
+var screenshotButton = document.getElementById("screen-shot");
+var logoutBtn = document.getElementById("logout");
 
 // working with buttons
 var BtnGroup = document.getElementById("btn-group");
@@ -64,6 +66,43 @@ joinBtn.addEventListener("click", function () {
   }
 });
 
+// Add event listener for logout button
+logoutBtn.addEventListener("click", function () {
+  fetch("/logout", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "same-origin",
+  })
+    .then(function (response) {
+      if (response.redirected) {
+        window.location.href = response.url;
+      }
+    })
+    .catch(function (error) {
+      console.error("Error logging out:", error);
+    });
+});
+
+// on clicking the screenshotButton get triggered and function invokes
+screenshotButton.addEventListener("click", async () => {
+  try {
+    const response = await fetch("/screenshot");
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "screenshot.png";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error taking screenshot:", error);
+  }
+});
+
 muteBtn.addEventListener("click", function () {
   //.addEventListener is used to invoke the click function which checks the below condition.
   muteFlag = !muteFlag;
@@ -80,7 +119,6 @@ HideCamBtn.addEventListener("click", function () {
   hideCamFlag = !hideCamFlag;
   if (hideCamFlag) {
     userStream.getTracks()[1].enabled = false;
-
     HideCamBtn.textContent = "Show Cam";
   } else {
     userStream.getTracks()[1].enabled = true;
@@ -90,7 +128,6 @@ HideCamBtn.addEventListener("click", function () {
 });
 
 // Client Side event is created
-
 socket.on("created", function () {
   creator = true;
   navigator.getUserMedia(
@@ -112,7 +149,7 @@ socket.on("created", function () {
     },
     function (error) {
       //3rd argument is error which is handled below.
-      alert("Not accessed");
+      alert("Browser cannot be acessed");
     }
   );
 });
@@ -236,6 +273,13 @@ socket.on("leave", function () {
     peerVideo.srcObject.getTracks()[1].stop();
   }
 
+  // Cleanup peerVideo
+  if (peerVideo.srcObject) {
+    peerVideo.srcObject.getTracks().forEach((track) => track.stop());
+    peerVideo.srcObject = null;
+  }
+
+  // Close rtcPeerConnection
   if (rtcPeerConnection) {
     rtcPeerConnection.ontrack = null;
     rtcPeerConnection.onicecandidate = null;
@@ -261,4 +305,43 @@ function onTrackFunction(event) {
   peerVideo.onloadedmetadata = function (e) {
     peerVideo.play(); // it is used to play the video using .onloadmetadata using peerVideo.play -> plays peer video
   };
+}
+var video = document.querySelector("video");
+var streamRecorder;
+var webcamstream;
+
+if (navigator.getUserMedia) {
+  navigator.getUserMedia(
+    { audio: true, video: true },
+    function (stream) {
+      video.src = window.URL.createObjectURL(stream);
+      webcamstream = stream;
+      //  streamrecorder = webcamstream.record();
+    },
+    onVideoFail
+  );
+} else {
+  alert("failed");
+}
+
+function startRecording() {
+  streamRecorder = webcamstream.record();
+  setTimeout(stopRecording, 10000);
+}
+function stopRecording() {
+  streamRecorder.getRecordedData(postVideoToServer);
+}
+function postVideoToServer(videoblob) {
+  var data = {};
+  data.video = videoblob;
+  data.metadata = "test metadata";
+  data.action = "upload_video";
+  jQuery.post(
+    "http://www.foundthru.co.uk/uploadvideo.php",
+    data,
+    onUploadSuccess
+  );
+}
+function onUploadSuccess() {
+  alert("video uploaded");
 }
