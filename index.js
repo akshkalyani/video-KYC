@@ -7,6 +7,7 @@ let fs = require("fs");
 const path = require("path");
 const sqlite3 = require("sqlite3").verbose();
 
+
 app.set("view engine", "ejs");
 app.set("views", __dirname);
 
@@ -20,7 +21,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 app.use(express.json());
 
-const port = 3309;
+const port = 3300;
 const server = app.listen(port, () => {
   console.log(`listening on ${port}`);
 });
@@ -101,6 +102,15 @@ app.get("/api/delete-all-logs", (req, res) => {
     }
   });
 });
+
+app.post("https://d2c-communication-uat.chola.murugappa.com/SMS/SEND%27", async (req, res) => {
+  try {
+
+
+  } catch(err) {
+    res.send(err);
+  }
+})
 
 // --- JOINING THE ROOM USING socket ---
 //socket io working with the signaling server
