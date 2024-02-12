@@ -17,6 +17,7 @@ app.set("views", "views"); // setting the directory for the views
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 app.use(express.json());
+app.use(cookieParser());
 
 const secretKey = "Navneet";
 const port = 3309;
@@ -24,19 +25,27 @@ const port = 3309;
 app.get("/login", (req, res) => {
   res.render("login");
 });
-app.get("/cholaReg", (req, res) => {
+app.get("/cholaReg", verifyToken, (req, res) => {
   res.render("cholaReg");
 });
 
-app.get("/contact_form/v1", (req, res) => {
-  res.sendFile(path.join(__dirname, "ContactForm.html"));
-});
+// Middleware function to verify token
+function verifyToken(req, res, next) {
+  const token = req.cookies.token;
 
-const userRoute = require("./route/basicRoute");
+  if (!token) {
+    return res.redirect("/login");
+  }
 
-app.use("/", userRoute);
-app.use(cookieParser());
-
+  jwt.verify(token, secretKey, (err, decoded) => {
+    if (err) {
+      return res.redirect("/login");
+    }
+    // user information in the request objec
+    req.user = decoded;
+    next();
+  });
+}
 // Define the database connection
 const db = new sqlite3.Database("E-KYC.db");
 
@@ -131,7 +140,6 @@ app.post("/api-jwt", (req, res) => {
             });
             console.log({ token });
             res.cookie("token", token, { httpOnly: true });
-
             res.redirect("/cholaReg");
           }
         );
@@ -153,7 +161,7 @@ app.post("/logout", (req, res) => {
   // Verify the JWT token to get the user's email
   jwt.verify(token, secretKey, (err, decoded) => {
     if (err) {
-      // If there's an error with the token, redirect the user to the login page
+      // If tan error with the token, redirect the user to the login page
       return res.redirect("/login");
     }
 
@@ -209,9 +217,6 @@ app.get("/api/delete-all-logs", (req, res) => {
       res.status(500).send("Internal Server Error");
     } else {
       console.log("All records have been deleted");
-
-      // Respond with a success message or other appropriate response
-      // res.json({ message: "All records have been deleted successfully" });
     }
   });
 });
@@ -224,7 +229,7 @@ const server = app.listen(port, () => {
 //socket io working with the signaling server
 var io = socket(server);
 
-//"io.on" is used tp make sure that the connection is established successfully
+//"io.on" is used to make sure that the connection is established successfully
 //Hence, generating the socket id each time the server is being hit.
 io.on("connection", function (socket) {
   console.log("Client is connected: " + socket.id);
@@ -254,27 +259,26 @@ io.on("connection", function (socket) {
     socket.broadcast.to(roomName).emit("ready");
   });
 
-  //then, ice is being transfered
+  //then, ice is being transferred
   socket.on("candidate", function (candidate, roomName) {
     console.log("candidate");
-    socket.broadcast.to(roomName).emit("candidate", candidate); // first "candidate" argument is self created and second one candidate is called from abpve "socket.on"
+    socket.broadcast.to(roomName).emit("candidate", candidate); // first "candidate" argument is self-created and the second one candidate is called from above "socket.on"
   });
 
-  // Now, offer is being generated from user to signaling server which again will be sent to the client side to verify in terms of some encrypted data
+  // Now, offer is being generated from the user to signaling server which again will be sent to the client-side to verify in terms of some encrypted data
   socket.on("offer", function (offer, roomName) {
     console.log("offer");
     socket.broadcast.to(roomName).emit("offer", offer);
   });
 
-  // Now, after generation of offer and to response of it we give answer
-  // answer can be either declined or accepted based on clients  decision
+  // Now, after the generation of offer and the response of it, we give an answer
+  // the answer can be either declined or accepted based on the client's decision
   socket.on("answer", function (answer, roomName) {
     console.log("answer");
     socket.broadcast.to(roomName).emit("answer", answer);
   });
 
-  //leave room  when disconnected from a peer
-
+  //leave room when disconnected from a peer
   socket.on("leave", function (roomName) {
     socket.leave(roomName);
     socket.broadcast.to(roomName).emit("leave");
