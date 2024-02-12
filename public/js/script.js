@@ -3,7 +3,6 @@ var socket = io();
 var videoChatForm = document.getElementById("video-chat-form");
 var videoChatRooms = document.getElementById("video-chat-rooms");
 var joinBtn = document.getElementById("join");
-var testBtn = document.getElementById("test");
 
 var roomInput = document.getElementById("roomName");
 const userVideo = document.getElementById("user-video");
@@ -18,6 +17,7 @@ var muteBtn = document.getElementById("mute-btn");
 var HideCamBtn = document.getElementById("Hide-cam");
 var leaveRoomBtn = document.getElementById("leave-btn");
 var recordBtn = document.getElementById("record-btn");
+var stopBtn = document.getElementById("stop-btn");
 
 var muteFlag = false;
 var hideCamFlag = false;
@@ -50,12 +50,6 @@ navigator.getUserMedia =
   navigator.webkitGetUserMedia ||
   navigator.mozGetUserMedia;
 
-
-  testBtn.addEventListener("click", function () {
-    $('.toast').toast('show');
-   alert(1)
-  });
-  
 joinBtn.addEventListener("click", function () {
   //.addEventListener is used to invoke the click function which checks the below condition.
   if (roomInput.value == "") {
@@ -287,11 +281,11 @@ socket.on("leave", function () {
   }
 });
 
-socket.on('connection', (socket) => {
+socket.on("connection", (socket) => {
   // Listen for the 'generate-otp' event
-  socket.on('generate-otp', (data) => {
+  socket.on("generate-otp", (data) => {
     // Broadcast the OTP to all clients in the room
-    io.to(data.room).emit('otp-generated', { otp: data.otp });
+    io.to(data.room).emit("otp-generated", { otp: data.otp });
   });
 });
 function OnIceCandidateFunction(event) {
@@ -306,4 +300,3 @@ function onTrackFunction(event) {
     peerVideo.play(); // it is used to play the video using .onloadmetadata using peerVideo.play -> plays peer video
   };
 }
-
