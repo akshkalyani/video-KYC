@@ -290,42 +290,4 @@ function onTrackFunction(event) {
     peerVideo.play(); // it is used to play the video using .onloadmetadata using peerVideo.play -> plays peer video
   };
 }
-var video = document.querySelector("video");
-var streamRecorder;
-var webcamstream;
 
-if (navigator.getUserMedia) {
-  navigator.getUserMedia(
-    { audio: true, video: true },
-    function (stream) {
-      video.src = window.URL.createObjectURL(stream);
-      webcamstream = stream;
-      //  streamrecorder = webcamstream.record();
-    },
-    onVideoFail
-  );
-} else {
-  alert("failed");
-}
-
-function startRecording() {
-  streamRecorder = webcamstream.record();
-  setTimeout(stopRecording, 10000);
-}
-function stopRecording() {
-  streamRecorder.getRecordedData(postVideoToServer);
-}
-function postVideoToServer(videoblob) {
-  var data = {};
-  data.video = videoblob;
-  data.metadata = "test metadata";
-  data.action = "upload_video";
-  jQuery.post(
-    "http://www.foundthru.co.uk/uploadvideo.php",
-    data,
-    onUploadSuccess
-  );
-}
-function onUploadSuccess() {
-  alert("video uploaded");
-}
