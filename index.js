@@ -29,6 +29,10 @@ app.get("/cholaReg", verifyToken, (req, res) => {
   res.render("cholaReg");
 });
 
+app.get("/contact_form/v1", (req, res) => {
+  res.render("ContactForm");
+});
+
 // Middleware function to verify token
 function verifyToken(req, res, next) {
   const token = req.cookies.token;
