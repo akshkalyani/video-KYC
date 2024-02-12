@@ -9,14 +9,12 @@ const peerVideo = document.getElementById("peer-video");
 var otpGeneratorBtn = document.getElementById("otpGenerator");
 var screenshotButton = document.getElementById("screen-shot");
 var logoutBtn = document.getElementById("logout");
-
 // working with buttons
 var BtnGroup = document.getElementById("btn-group");
 var muteBtn = document.getElementById("mute-btn");
 var HideCamBtn = document.getElementById("Hide-cam");
 var leaveRoomBtn = document.getElementById("leave-btn");
 var recordBtn = document.getElementById("record-btn");
-var stopBtn = document.getElementById("stop-btn");
 
 var muteFlag = false;
 var hideCamFlag = false;
@@ -49,12 +47,6 @@ navigator.getUserMedia =
   navigator.webkitGetUserMedia ||
   navigator.mozGetUserMedia;
 
-
-  testBtn.addEventListener("click", function () {
-    $('.toast').toast('show');
-   alert(1)
-  });
-  
 joinBtn.addEventListener("click", function () {
   //.addEventListener is used to invoke the click function which checks the below condition.
   if (roomInput.value == "") {
