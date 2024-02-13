@@ -5,7 +5,8 @@
     <meta charset="utf-8">
     <title>Video Call meeting</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.3/socket.io.js"></script>
-    <script src="https://cdn.socket.io/socket.io-3.0.1.min.js"></script> 
+    <script src="https://cdn.socket.io/socket.io-3.0.1.min.js"></script>
+
     <link href="css/style.css" rel="stylesheet" />
 </head>
 <body>
@@ -25,10 +26,36 @@
         <button id="screen-shot">ScreenShot</button>
         <button id="record-btn">Record</button>
         </button> <button id="logout">Logout</button>
+        <button id="generate-otp-btn">Send OTP</button>
     </div>
 
     <script src="js/script.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+      function generateOtp() {
+        // Generate a random 4-digit OTP
+        return Math.floor(1000 + Math.random() * 9000);
+      }
+  
+      document.getElementById('generate-otp-btn').addEventListener('click', function() {
+        const otp = generateOtp();
+  
+        axios.post('/generate-otp', {
+          otp: otp
+        })
+          .then(function (response) {
+            console.log('Response:', response.data);
+            // Handle the response as needed
+            alert('OTP sent successfully');
+          })
+          .catch(function (error) {
+            console.error('Error sending OTP:', error.message);
+            // Handle the error as needed
+            alert('Error sending OTP');
+          });
+      });
+    </script>
 </body>
 
 </html>

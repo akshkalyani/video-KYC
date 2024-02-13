@@ -10,6 +10,7 @@ const cookieParser = require("cookie-parser");
 const { Script } = require("vm");
 const jwt = require("jsonwebtoken");
 const { time } = require("console");
+const axios = require("axios");
 
 app.set("view engine", "ejs");
 app.set("views", __dirname);
@@ -239,6 +240,54 @@ app.get("/api/delete-all-logs", (req, res) => {
     }
   });
 });
+
+app.post('/generate-otp', async (req, res) => {
+  try {
+    const generatedOtp = req.body.otp || generateOtp();
+
+    const response = await axios.post('https://d2c-communication-uat.chola.murugappa.com/SMS/SEND', {
+      enterpriseid: "chfinotp",
+      subEnterpriseid: "chfinotp",
+      msisdn: "9409258555",
+      intflag: "false",
+      msgid: "1603312300682",
+      sender: "CHOFIN",
+      contenttype: "1",
+      language: "en",
+      name: "1611209806672",
+      msgtext: `Your secret OTP to login to the Chola One APP is ${generatedOtp}. DO NOT disclose your OTP to anyone - Team Chola 76iyyiiiu`,
+      productType: "KYC",
+      environment: "UAT"
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.status >= 200 && response.status < 300) {
+      // Handle the success response
+      console.log('API Response:', response.data);
+      res.status(200).send('OTP sent successfully');
+    } else {
+      // Handle the error response
+      console.error('Error sending OTP:', response.status, response.statusText);
+      
+      // Log additional information from the response headers
+      console.log('Response Headers:', response.headers);
+      
+      res.status(response.status).send(`Error sending OTP: ${response.statusText}`);
+    }
+  } catch (error) {
+    // Handle unexpected errors
+    console.error('Unexpected error sending OTP:', error.message);
+    res.status(500).send('Unexpected error sending OTP');
+  }
+});
+
+function generateOtp() {
+  // Generate a random 4-digit OTP
+  return Math.floor(1000 + Math.random() * 9000);
+}
 
 const server = app.listen(port, () => {
   console.log(`listening on ${port}`);
