@@ -15,7 +15,7 @@ var muteBtn = document.getElementById("mute-btn");
 var HideCamBtn = document.getElementById("Hide-cam");
 var leaveRoomBtn = document.getElementById("leave-btn");
 var recordBtn = document.getElementById("record-btn");
-
+var stopRecordBtn = document.getElementById("stop-btn");
 var muteFlag = false;
 var hideCamFlag = false;
 
@@ -69,11 +69,39 @@ logoutBtn.addEventListener("click", function () {
     .then(function (response) {
       if (response.redirected) {
         window.location.href = response.url;
+        recorder.stop();
       }
     })
+
     .catch(function (error) {
       console.error("Error logging out:", error);
+      recorder.stop(); // Stopping the recorder after redirecting
     });
+});
+recordBtn.addEventListener("click", async () => {
+  try {
+    const stream = await navigator.mediaDevices.getDisplayMedia({
+      video: true,
+      audio: true,
+    });
+    const recorder = new MediaRecorder(stream);
+    recorder.start();
+    const buffer = [];
+    recorder.addEventListener("dataavailable", (event) => {
+      buffer.push(event.data);
+    });
+    recorder.addEventListener("stop", () => {
+      const blob = new Blob(buffer, {
+        type: "video/mp4",
+      });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "Recording.mp4";
+      a.click();
+    });
+  } catch (error) {
+    console.error("Error taking screenshot:", error);
+  }
 });
 
 // on clicking the screenshotButton get triggered and function invokes
