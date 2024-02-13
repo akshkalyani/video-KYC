@@ -144,7 +144,7 @@ app.post("/api-jwt", (req, res) => {
               return console.error(err.message);
             }
             const token = jwt.sign({ email: row.email }, secretKey, {
-              expiresIn: "1h",
+              expiresIn: "10m",
             });
             console.log({ token });
             res.cookie("token", token, { httpOnly: true });
@@ -192,11 +192,22 @@ app.post("/logout", (req, res) => {
   });
 });
 
+
+// Specify the folder where you want to save the screenshots
+const saveFolderPath = "C:/Users/intern-navneet/Desktop/video-KYC/ScreenShot";
+
 // API to get the screenshot of the video call page.
 app.get("/screenshot", async (req, res) => {
   try {
+    // Capture the screenshot
     const img = await screenshot();
-    res.type("image/png"); //type--> image/png
+
+    // Write the image to the specified path
+    const imagePath = path.join(saveFolderPath, `screenshot_${Date.now()}.png`);
+    fs.writeFileSync(imagePath, img);
+
+    // Send the image as the response
+    res.type("image/png");
     res.send(img);
   } catch (error) {
     console.error("Error capturing screenshot:", error);
