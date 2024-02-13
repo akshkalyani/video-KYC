@@ -248,7 +248,7 @@ app.post('/generate-otp', async (req, res) => {
     const response = await axios.post('https://d2c-communication-uat.chola.murugappa.com/SMS/SEND', {
       enterpriseid: "chfinotp",
       subEnterpriseid: "chfinotp",
-      msisdn: "9409258555",
+      msisdn: "8210731776",
       intflag: "false",
       msgid: "1603312300682",
       sender: "CHOFIN",
