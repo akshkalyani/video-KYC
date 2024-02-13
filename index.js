@@ -194,7 +194,7 @@ app.post("/logout", (req, res) => {
 
 
 // Specify the folder where you want to save the screenshots
-const saveFolderPath = "C:/Users/intern-navneet/Desktop/video-KYC/ScreenShot";
+const saveFolderPath = "C:\Users\intern-navneet\Desktop\video-KYC\ScreenShot";
 
 // API to get the screenshot of the video call page.
 app.get("/screenshot", async (req, res) => {

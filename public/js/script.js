@@ -49,7 +49,7 @@ navigator.getUserMedia =
 
 joinBtn.addEventListener("click", function () {
   //.addEventListener is used to invoke the click function which checks the below condition.
-  if (roomInput.value == "") {
+  if (roomInput.value === "") {
     alert("Please enter a valid room name!");
   } else {
     roomName = roomInput.value;
@@ -317,3 +317,4 @@ function onTrackFunction(event) {
     peerVideo.play(); // it is used to play the video using .onloadmetadata using peerVideo.play -> plays peer video
   };
 }
+
