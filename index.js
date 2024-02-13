@@ -120,10 +120,14 @@ app.post("/api-jwt", (req, res) => {
         return console.error(err.message);
       }
       if (!row) {
-        return res.status(401).send("Invalid Email");
+        return res.send(
+          '<script>alert("Invalid Email Entered"); window.location.href = "/login";</script>'
+        );
       } else {
         if (row.password !== userPassword) {
-          return res.status(401).send("Invalid Password");
+          return res.send(
+            '<script>alert("Invalid Password Entered"); window.location.href = "/login";</script>'
+          );
         }
 
         // Check if the user is already logged in
