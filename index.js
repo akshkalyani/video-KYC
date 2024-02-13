@@ -9,6 +9,7 @@ const sqlite3 = require("sqlite3").verbose();
 const cookieParser = require("cookie-parser");
 const { Script } = require("vm");
 const jwt = require("jsonwebtoken");
+const { time } = require("console");
 
 app.set("view engine", "ejs");
 app.set("views", __dirname);
@@ -106,7 +107,6 @@ app.post("/api/register", (req, res) => {
     }
   );
 });
-
 // verifying the details using JWT Auth
 app.post("/api-jwt", (req, res) => {
   const userEmail = req.body.email;
@@ -203,7 +203,7 @@ app.get("/screenshot", async (req, res) => {
     const img = await screenshot();
 
     // Write the image to the specified path
-    const imagePath = path.join(saveFolderPath, `screenshot_${Date.now()}.png`);
+    const imagePath = path.join(saveFolderPath, `Screenshot_${Date.now()}.png`);
     fs.writeFileSync(imagePath, img);
 
     // Send the image as the response
