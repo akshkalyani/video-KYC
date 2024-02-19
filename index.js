@@ -3,7 +3,7 @@ const app = express();
 const bodyParser = require("body-parser");
 const socket = require("socket.io");
 const screenshot = require("screenshot-desktop");
-let fs = require("fs"); // calling file system modules :- built in module
+let fs = require("fs"); 
 const path = require("path");
 const sqlite3 = require("sqlite3").verbose();
 const cookieParser = require("cookie-parser");
@@ -11,6 +11,7 @@ const { Script } = require("vm");
 const jwt = require("jsonwebtoken");
 const { time } = require("console");
 const axios = require("axios");
+const { decode } = require("punycode");
 
 app.set("view engine", "ejs");
 app.set("views", __dirname);
@@ -27,6 +28,12 @@ const port = 3309;
 app.get("/login", (req, res) => {
   res.render("login");
 });
+
+app.get("/Cust_login", (req,res)=>{
+  res.render("Cust_login");
+});
+
+
 app.get("/cholaReg", verifyToken, (req, res) => {
   res.render("cholaReg");
 });
@@ -35,48 +42,93 @@ app.get("/contact_form/v1", (req, res) => {
   res.render("ContactForm");
 });
 
+app.get("/contact_form/v2", (req, res) => {
+  res.render("CustomerForm"); 
+});
+
+
+// Define the Excecutive DB
+const ExcecutiveDB = new sqlite3.Database("ExcecutiveDataBase.db");
+
+// Define the Customer DB
+const CustomerDB = new sqlite3.Database("CustomerDataBase.db");
+
+// Create the contacts table if it doesn't exist
+ExcecutiveDB.run(
+  "CREATE TABLE IF NOT EXISTS ExcecutiveTable(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE, email TEXT UNIQUE, password TEXT, phone INT UNIQUE, loggedIn BOOLEAN DEFAULT 0)"
+);
+
+CustomerDB.run(
+  "CREATE TABLE IF NOT EXISTS CustomerTable(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE, email TEXT UNIQUE,password TEXT, phone INT UNIQUE,loggedIn BOOLEAN DEFAULT 0)"
+);
+
 // Middleware function to verify token
 function verifyToken(req, res, next) {
   const token = req.cookies.token;
 
   if (!token) {
-    return res.redirect("/login");
+    // Redirect to login page based on the URL
+    if (req.originalUrl.includes("Cust")) {
+      return res.redirect("/Cust_login");
+    } else {
+      return res.redirect("/login");
+    }
   }
 
   jwt.verify(token, secretKey, (err, decoded) => {
     if (err) {
-      return res.redirect("/login");
+      // Token verification failed
+      if (err.name === 'TokenExpiredError') {
+        // Token has expired, clear the cookie and redirect to login
+        res.clearCookie("token");
+        // Redirect to the appropriate login page based on the URL
+        if (req.originalUrl.includes("Cust")) {
+          return res.redirect("/Cust_login");
+        } else {
+          return res.redirect("/login");
+        }
+      } else {
+        // Other errors
+        return res.status(500).send("Internal Server Error");
+      }
     }
-    // user information in the request objec
+
+    // Check token expiration
+    const currentTimeInSeconds = Math.floor(Date.now() / 1000);
+    if (decoded.exp <= currentTimeInSeconds) {
+      // Token has expired, clear the cookie and redirect to login
+      res.clearCookie("token");
+      // Redirect to the appropriate login page based on the URL
+      if (req.originalUrl.includes("Cust")) {
+        return res.redirect("/Cust_login");
+      } else {
+        return res.redirect("/login");
+      }
+    }
+
+    // user information in the request object
     req.user = decoded;
     next();
   });
 }
-// Define the database connection
-const db = new sqlite3.Database("E-KYC.db");
 
-// Create the contacts table if it doesn't exist
-db.run(
-  "CREATE TABLE IF NOT EXISTS customer_Details (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE, email TEXT UNIQUE, password TEXT, phone INT UNIQUE, loggedIn BOOLEAN DEFAULT 0)"
-);
 
-// user registration in customer_Details
-app.post("/api/register", (req, res) => {
+//Excecutive Database registeration
+app.post("/api/register/excecutive", (req, res) => {
   const userName = req.body.name;
   const userEmail = req.body.email;
   const userPassword = req.body.password;
   const userPhone = req.body.phone;
 
-  // Checks the mail whether the @chola.in
+  //Checks the mail whether the @chola.in
   if (!userEmail.endsWith("@chola.in")) {
-    return res
-      .status(404)
-      .send("Invalid email domain. Please use an @chola.in email address.");
+    return res.status(404).send(
+      '<script>alert("Invalid Chola ID"); window.location.href = "/contact_form/v1";</script>'
+    );
   }
-
   // Check if the username already exists in the database
-  db.get(
-    "SELECT * FROM customer_Details WHERE name = ?",
+  ExcecutiveDB.get(
+    "SELECT * FROM ExcecutiveTable WHERE name = ?",
     [userName],
     (err, row) => {
       if (err) {
@@ -84,22 +136,23 @@ app.post("/api/register", (req, res) => {
       }
       if (row) {
         // Username already exists
-        return res.status(400).send("Username already exists.");
+        return res.status(400).send(
+          '<script>alert("Username already exists"); window.location.href = "/contact_form/v1";</script>'
+        );
       } else {
         // encodedPassword encodes the Password into string of base64
         const encodedPassword = Buffer.from(userPassword, "utf-8").toString(
           "base64"
         );
-
         // Inserting data into SQLite database
-        db.run(
-          "INSERT INTO customer_Details (name, email, password, phone) VALUES (?, ?, ?, ?)",
+        ExcecutiveDB.run(
+          "INSERT INTO ExcecutiveTable (name, email, password, phone) VALUES (?, ?, ?, ?)",
           [userName, userEmail, userPassword, userPhone],
           function (err) {
             if (err) {
               return console.error(err.message);
             }
-            console.log(`A new log has been added with id ${this.lastID}`);
+            console.log(`A new Excecutive log has been added with id ${this.lastID}`);
             console.log(`${userEmail} || ${userPassword}`);
           }
         );
@@ -108,13 +161,63 @@ app.post("/api/register", (req, res) => {
     }
   );
 });
-// verifying the details using JWT Auth
-app.post("/api-jwt", (req, res) => {
+
+//Customer Database registration
+app.post("/api/register/customer", (req, res) => {
+  const userName = req.body.name;
+  const userEmail = req.body.email;
+  const userPassword = req.body.password;
+  const userPhone = req.body.phone;
+
+  //Checks the mail 
+  if (userEmail.endsWith("@chola.in")) {
+      return res.status(404).send(
+        '<script>alert("Invalid Email Entered"); window.location.href = "/contact_form/v2";</script>'
+      );
+  }
+  // Check if the username already exists in the database
+  CustomerDB.get(
+    "SELECT * FROM CustomerTable WHERE name = ?",
+    [userName],
+    (err, row) => {
+      if (err) {
+        return console.error(err.message);
+      }
+      if (row) {
+        // Username already exists
+        return res.status(400).send(
+          '<script>alert("Username already exists"); window.location.href = "/contact_form/v2";</script>'
+        );
+      } else {
+        // encodedPassword encodes the Password into string of base64
+        const encodedPassword = Buffer.from(userPassword, "utf-8").toString(
+          "base64"
+        );
+        // Inserting data into SQLite database
+        CustomerDB.run(
+          "INSERT INTO CustomerTable (name, email, password, phone) VALUES (?, ?, ?, ?)",
+          [userName, userEmail, userPassword, userPhone],
+          function (err) {
+            if (err) {
+              return console.error(err.message);
+            }
+            console.log(`A new log customer DB has been added with id ${this.lastID}`);
+            console.log(`${userEmail} || ${userPassword}`);
+          }
+        );
+        res.redirect("/Cust_login");
+      }
+    }
+  );
+});
+
+// Verifying the Executive Detail using JWT Auth
+app.post("/api-jwt-excecutive", (req, res) => {
   const userEmail = req.body.email;
   const userPassword = req.body.password;
 
-  db.get(
-    "SELECT * FROM customer_Details WHERE email = ?",
+  ExcecutiveDB.get(
+    "SELECT * FROM ExcecutiveTable WHERE email = ?",
     [userEmail],
     (err, row) => {
       if (err) {
@@ -137,15 +240,15 @@ app.post("/api-jwt", (req, res) => {
         }
 
         // Set loggedIn flag to true in the database
-        db.run(
-          "UPDATE customer_Details SET loggedIn = 1 WHERE email = ?",
+        ExcecutiveDB.run(
+          "UPDATE ExcecutiveTable SET loggedIn = 1 WHERE email = ?",
           [userEmail],
           (err) => {
             if (err) {
               return console.error(err.message);
             }
             const token = jwt.sign({ email: row.email }, secretKey, {
-              expiresIn: "10m",
+              expiresIn: "1h",
             });
             console.log({ token });
             res.cookie("token", token, { httpOnly: true });
@@ -157,37 +260,111 @@ app.post("/api-jwt", (req, res) => {
   );
 });
 
-//logout from the session by creating the loggedIn flag
-app.post("/logout", (req, res) => {
-  // Extract the JWT token from the request cookies
+// Verifying the Customer Details using JWT Auth
+app.post("/api-jwt-customer", (req, res) => {
+  const userEmail = req.body.email;
+  const userPassword = req.body.password;
+
+  CustomerDB.get(
+    "SELECT * FROM CustomerTable WHERE email = ?",
+    [userEmail],
+    (err, row) => {
+      if (err) {
+        return console.error(err.message);
+      }
+      if (!row) {
+        return res.send(
+          '<script>alert("Invalid Email Entered"); window.location.href = "/Cust_login";</script>'
+        );
+      } else {
+        if (row.password !== userPassword) {
+          return res.send(
+            '<script>alert("Invalid Password Entered"); window.location.href = "/Cust_login";</script>'
+          );
+        }
+
+        // Check if the user is already logged in
+        if (row.loggedIn) {
+          return res.status(401).send("User is already logged in");
+        }
+
+        // Set loggedIn flag to true in the database
+        CustomerDB.run(
+          "UPDATE CustomerTable SET loggedIn = 1 WHERE email = ?",
+          [userEmail],
+          (err) => {
+            if (err) {
+              return console.error(err.message);
+            }
+            const token = jwt.sign({ email: row.email }, secretKey, {
+              expiresIn: "1h",
+            });
+            console.log({ token });
+            res.cookie("token", token, { httpOnly: true });
+            res.redirect("/cholaReg");
+          }
+        );
+      }
+    }
+  );
+});
+
+
+//logout from the Excecutive session by creating the loggedIn flag
+app.post("/logout/excecutive", (req, res) => {
   const token = req.cookies.token;
 
   if (!token) {
-    // If there's no token, the user is not authenticated, so redirect them to the login page
     return res.redirect("/login");
   }
 
-  // Verify the JWT token to get the user's email
   jwt.verify(token, secretKey, (err, decoded) => {
     if (err) {
-      // If tan error with the token, redirect the user to the login page
       return res.redirect("/login");
     }
 
-    // Extract the user's email from the decoded token
     const userEmail = decoded.email;
 
-    // Clear the loggedIn flag in the database for the current user
-    db.run(
-      "UPDATE customer_Details SET loggedIn = 0 WHERE email = ?",
+    // Set loggedIn flag to false in the database
+    ExcecutiveDB.run(
+      "UPDATE ExcecutiveTable SET loggedIn = 0 WHERE email = ?",
       [userEmail],
       (err) => {
         if (err) {
           return console.error(err.message);
         }
-        // Redirect the user to the login page after logging out
-        res.clearCookie("token"); // Clear the token from the cookies
+        res.clearCookie("token");
         res.redirect("/login");
+      }
+    );
+  });
+});
+
+
+//logout from the Customer session by creating the loggedIn flag
+app.post("/logout/customer", (req, res) => {
+  const token = req.cookies.token;
+
+  if (!token) {
+    return res.redirect("/Cust_login");
+  }
+
+  jwt.verify(token, secretKey, (err, decoded) => {
+    if (err) {
+      return res.redirect("/Cust_login");
+    }
+
+    const userEmail = decoded.email;
+
+    CustomerDB.run(
+      "UPDATE CustomerTable SET loggedIn = 0 WHERE email = ?",
+      [userEmail],
+      (err) => {
+        if (err) {
+          return console.error(err.message);
+        }
+        res.clearCookie("token");
+        res.redirect("/Cust_login");
       }
     );
   });
@@ -216,10 +393,10 @@ app.get("/screenshot", async (req, res) => {
   }
 });
 
-// Route to render the admin page
+// Route to render the Excecutive admin page
 app.get("/admin", (req, res) => {
   // Fetch all data from SQLite and render the admin page
-  db.all("SELECT * FROM customer_Details", (err, rows) => {
+  ExcecutiveDB.all("SELECT * FROM ExcecutiveTable", (err, rows) => {
     if (err) {
       console.error(err.message);
       res.status(500).send("Internal Server Error");
@@ -229,18 +406,46 @@ app.get("/admin", (req, res) => {
   });
 });
 
-// deleting all the logs from the database
-app.get("/api/delete-all-logs", (req, res) => {
-  db.run("DELETE FROM customer_Details", function (err) {
+// Route to render the Customer admin page
+app.get("/cust_admin", (req, res) => {
+  // Fetch all data from SQLite and render the admin page
+  CustomerDB.all("SELECT * FROM CustomerTable", (err, rows) => {
     if (err) {
       console.error(err.message);
       res.status(500).send("Internal Server Error");
     } else {
-      console.log("All records have been deleted");
+      res.render("cust_admin", { data: rows });
     }
   });
 });
 
+// // deleting all Excecutive logs from the database
+app.get("/api/delete-all-Excecutive-logs", (req, res) => {
+  ExcecutiveDB.run("DELETE FROM ExcecutiveTable", function (err) {
+    if (err) {
+      console.error(err.message);
+      res.status(500).send("Internal Server Error");
+    } else {
+      res.redirect("/contact_form/v1");
+      console.log("All Excecutive records have been deleted");
+    }
+  });
+});
+
+// // deleting all Customer logs from the database
+app.get("/api/delete-all-Customer-logs", (req, res) => {
+  CustomerDB.run("DELETE FROM CustomerTable", function (err) {
+    if (err) {
+      console.error(err.message);
+      res.status(500).send("Internal Server Error");
+    } else {
+      console.log("All Customer records have been deleted");
+      res.redirect("/contact_form/v2");
+    }
+  });
+});
+
+//OTP Generation
 app.post('/generate-otp', async (req, res) => {
   try {
     const generatedOtp = req.body.otp || generateOtp();
@@ -309,12 +514,13 @@ io.on("connection", function (socket) {
 
     if (room == undefined) {
       socket.join(roomName);
-      socket.emit("created"); //   console.log("Room Created");  --> it states that the room is CREATED.
-    } else if (room.size == 1) {
+      socket.emit("joined");
+      socket.emit("created"); // console.log("Room Created");  --> it states that the room is CREATED.
+    } else if (room.size == 1) {   
       socket.join(roomName);
       socket.emit("joined"); // --> it states that the room is joined by the user
     } else {
-      // console.log("Can't join ! Room is full");
+      console.log("Can't join ! Room is full");
       socket.emit("full");
     }
 
