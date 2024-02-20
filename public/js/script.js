@@ -211,94 +211,133 @@ socket.on("joined", function () {
       userVideo.onloadedmetadata = function (e) {
         userVideo.play(); // it is used to play the video using .onloadmetadata
       };
-      socket.emit("ready", roomName); // .emit will create and send an event when room is ready.
+      socket.emit("ready", roomName);
     },
     function (error) {
       //3rd argument is error which is handled below.
-      alert("Browser cannot be acessed");
+      alert("Not accessed");
     }
   );
 });
-
+socket.on("full", function () {
+  alert("Already In call, can't be accessed.");
+});
+socket.on("ready", function () {
+  if (creator) {
+    //creator is working in userFirst end.
+    // new rtcPeerConnection object is created
+    rtcPeerConnection = new RTCPeerConnection(iceServers);
+    rtcPeerConnection.onicecandidate = OnIceCandidateFunction;
+    //ontrack function is used to make a audio and video connection vissible to peers
+    rtcPeerConnection.ontrack = onTrackFunction;
+ 
+    //addTrack is used to send the userVideo, audio to peer side
+    rtcPeerConnection.addTrack(userStream.getTracks()[0], userStream); // for audio track 0th index
+    rtcPeerConnection.addTrack(userStream.getTracks()[1], userStream); // for video track 1st index
+ 
+    rtcPeerConnection.createOffer(
+      function (offer) {
+        rtcPeerConnection.setLocalDescription(offer);
+        socket.emit("offer", offer, roomName);
+      },
+      function (error) {
+        console.log(error);
+      }
+    );
+  }
+});
 socket.on("candidate", function (candidate) {
-  // on candidate event
-  var iceCandidate = new RTCIceCandidate(candidate); //New instance is created of class RTCIceCandidate
-  rtcPeerConnection.addIceCandidate(iceCandidate); // .addIceCandidate() is used to pass and return the new instance of class "rtcPeerConnection" and that instance value is stored to variable.
+  var iceCandidate = new RTCIceCandidate(candidate);
+  rtcPeerConnection.addIceCandidate(iceCandidate);
 });
-
 socket.on("offer", function (offer) {
-  // on offer event
-  rtcPeerConnection = new RTCPeerConnection(iceServers); // new instance of RTCpeerConnection
-  rtcPeerConnection.setRemoteDescription(new RTCSessionDescription(offer)); // .setRemoteDescription is a method to pass and return the new instance of class "RTCSessionDescription"
-  rtcPeerConnection.onicecandidate = function (event) {
-    // .onicecandidate checks if the candidate is null
-    if (event.candidate) {
-      socket.emit("candidate", {
-        // emits "candidate"
-        candidate: event.candidate,
-        room: roomName,
-      });
-    }
-  };
-  rtcPeerConnection.ontrack = function (event) {
-    // event handler for when a track is added to the connection
-    peerVideo.srcObject = event.streams[0];
-    peerVideo.onloadedmetadata = function (e) {
-      peerVideo.play();
-    };
-  };
-
-  navigator.getUserMedia(
-    // getUserMedia is user to enable the features like audio , video
-    {
-      audio: true,
-      video: { width: 1280, height: 720, frameRate: { ideal: 30, max: 60 } },
-      audio: { echoCancellation: true, noiseSuppression: true },
-    },
-    function (stream) {
-      userStream = stream;
-      videoChatForm.style = "display: none"; // stream is used  for "video Streaming" in user-video *above refer.
-      userVideo.srcObject = stream; //2nd argument is a function.
-      BtnGroup.style = "display:flex";
-      userVideo.onloadedmetadata = function (e) {
-        userVideo.play(); // it is used to play the video using .onloadmetadata
-      };
-      userStream.getTracks().forEach(function (track) {
-        rtcPeerConnection.addTrack(track, userStream); // it is used to add the media stream (tracks) to the connection
-      });
-
-      rtcPeerConnection.createAnswer(
-        // .createAnswer is used to create the connection and returns the instance to the variable.
-        function (answer) {
-          rtcPeerConnection.setLocalDescription(answer); // .setLocalDescription is used to pass and return the new instance of class "answer"
-          socket.emit("answer", {
-            // emits answer
-            answer: answer,
-            room: roomName,
-          });
-        },
-        function (error) {
-          console.log(error);
-        }
-      );
-    },
-    function (error) {
-      //3rd argument is error which is handled below.
-      alert("Browser cannot be acessed");
-    }
-  );
+  // it is running on other user side
+  if (!creator) {
+    // new rtcPeerConnection object is created
+    rtcPeerConnection = new RTCPeerConnection(iceServers);
+    rtcPeerConnection.onicecandidate = OnIceCandidateFunction;
+    //ontrack function is used to make a audio and video connection vissible to peers
+    rtcPeerConnection.ontrack = onTrackFunction;
+ 
+    //addTrack is used to send the userVideo, audio to peer side
+    rtcPeerConnection.addTrack(userStream.getTracks()[0], userStream); // for audio track 0th index
+    rtcPeerConnection.addTrack(userStream.getTracks()[1], userStream); // for video track 1st index
+    rtcPeerConnection.setRemoteDescription(offer);
+    rtcPeerConnection.createAnswer(
+      function (answer) {
+        rtcPeerConnection.setLocalDescription(answer);
+        socket.emit("answer", answer, roomName);
+      },
+      function (error) {
+        console.log(error);
+      }
+    );
+  }
 });
-
 socket.on("answer", function (answer) {
-  // on answer event
-  rtcPeerConnection.setRemoteDescription(new RTCSessionDescription(answer)); // .setRemoteDescription is a method to pass and return the new instance of class "RTCSessionDescription"
+  rtcPeerConnection.setRemoteDescription(answer);
 });
-
-socket.on("roomFull", function () {
-  // Handling event when the room is already occupied
-  alert("Room is already occupied by a user from the same domain.");
-  // You can add any other handling logic here, such as redirecting the user or displaying a message.
+ 
+//leaving rhe call by click event listener
+leaveRoomBtn.addEventListener("click", function () {
+  //.addEventListener is used to invoke the click function which checks the below condition.
+  socket.emit("leave", roomName);
+ 
+  videoChatForm.style = "display:block";
+  BtnGroup.style = "display:none";
+ 
+  //here if user clicks the button below thing will invoke
+  if (userVideo.srcObject) {
+    userVideo.srcObject.getTracks()[0].stop();
+    userVideo.srcObject.getTracks()[1].stop();
+  }
+  // here if peer click the button it will invoke
+ 
+  if (peerVideo.srcObject) {
+    peerVideo.srcObject.getTracks()[0].stop();
+    peerVideo.srcObject.getTracks()[1].stop();
+  }
+ 
+  if (rtcPeerConnection) {
+    rtcPeerConnection.ontrack = null;
+    rtcPeerConnection.onicecandidate = null;
+    rtcPeerConnection.close();
+  }
 });
+ 
+socket.on("leave", function () {
+  //here if I give "creator = true" means if user1 leaves the call the user2 will be assingned the role
+  // but since being an excecutive call cannot make it true.
+  if (peerVideo.srcObject) {
+    peerVideo.srcObject.getTracks()[0].stop();
+    peerVideo.srcObject.getTracks()[1].stop();
+  }
+ 
+  // Cleanup peerVideo
+  if (peerVideo.srcObject) {
+    peerVideo.srcObject.getTracks().forEach((track) => track.stop());
+    peerVideo.srcObject = null;
+  }
+ 
+  // Close rtcPeerConnection
+  if (rtcPeerConnection) {
+    rtcPeerConnection.ontrack = null;
+    rtcPeerConnection.onicecandidate = null;
+    rtcPeerConnection.close();
+  }
+});
+function OnIceCandidateFunction(event) {
+  if (event.candidate) {
+    socket.emit("candidate", event.candidate, roomName);
+  }
+}
+ 
+function onTrackFunction(event) {
+  peerVideo.srcObject = event.streams[0]; // event.stream is an array where at 0th index audio and video is stored and we store it in peerVideo.srcObject
+  peerVideo.onloadedmetadata = function (e) {
+    peerVideo.play(); // it is used to play the video using .onloadmetadata using peerVideo.play -> plays peer video
+  };
+}
 
 // on click event
 videoChatForm.addEventListener("submit", function (event) {

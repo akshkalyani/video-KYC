@@ -47,15 +47,15 @@ app.get("/contact_form/v2", (req, res) => {
 });
 
 
+
 // Define the Excecutive DB
 const ExcecutiveDB = new sqlite3.Database("ExcecutiveDataBase.db");
 
 // Define the Customer DB
 const CustomerDB = new sqlite3.Database("CustomerDataBase.db");
 
-// Create the contacts table if it doesn't exist
 ExcecutiveDB.run(
-  "CREATE TABLE IF NOT EXISTS ExcecutiveTable(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE, email TEXT UNIQUE, password TEXT, phone INT UNIQUE, loggedIn BOOLEAN DEFAULT 0)"
+  "CREATE TABLE IF NOT EXISTS ExcecutiveTable(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE, email TEXT UNIQUE, password TEXT, phone INT UNIQUE, roomName TEXT UNIQUE, loggedIn BOOLEAN DEFAULT 0)",
 );
 
 CustomerDB.run(
@@ -68,50 +68,17 @@ function verifyToken(req, res, next) {
 
   if (!token) {
     // Redirect to login page based on the URL
-    if (req.originalUrl.includes("Cust")) {
-      return res.redirect("/Cust_login");
-    } else {
-      return res.redirect("/login");
-    }
+    return res.redirect("/login");
   }
-
   jwt.verify(token, secretKey, (err, decoded) => {
-    if (err) {
-      // Token verification failed
-      if (err.name === 'TokenExpiredError') {
-        // Token has expired, clear the cookie and redirect to login
-        res.clearCookie("token");
-        // Redirect to the appropriate login page based on the URL
-        if (req.originalUrl.includes("Cust")) {
-          return res.redirect("/Cust_login");
-        } else {
+        if (err) {
           return res.redirect("/login");
         }
-      } else {
-        // Other errors
-        return res.status(500).send("Internal Server Error");
-      }
-    }
-
-    // Check token expiration
-    const currentTimeInSeconds = Math.floor(Date.now() / 1000);
-    if (decoded.exp <= currentTimeInSeconds) {
-      // Token has expired, clear the cookie and redirect to login
-      res.clearCookie("token");
-      // Redirect to the appropriate login page based on the URL
-      if (req.originalUrl.includes("Cust")) {
-        return res.redirect("/Cust_login");
-      } else {
-        return res.redirect("/login");
-      }
-    }
-
-    // user information in the request object
-    req.user = decoded;
-    next();
-  });
+        // user information in the request objec
+        req.user = decoded;
+        next();
+      });
 }
-
 
 //Excecutive Database registeration
 app.post("/api/register/excecutive", (req, res) => {
@@ -119,6 +86,7 @@ app.post("/api/register/excecutive", (req, res) => {
   const userEmail = req.body.email;
   const userPassword = req.body.password;
   const userPhone = req.body.phone;
+  const uniqueId = req.body.roomName;
 
   //Checks the mail whether the @chola.in
   if (!userEmail.endsWith("@chola.in")) {
@@ -135,7 +103,7 @@ app.post("/api/register/excecutive", (req, res) => {
         return console.error(err.message);
       }
       if (row) {
-        // Username already exists
+        // Username or uniqueID already exists
         return res.status(400).send(
           '<script>alert("Username already exists"); window.location.href = "/contact_form/v1";</script>'
         );
@@ -146,23 +114,24 @@ app.post("/api/register/excecutive", (req, res) => {
         );
         // Inserting data into SQLite database
         ExcecutiveDB.run(
-          "INSERT INTO ExcecutiveTable (name, email, password, phone) VALUES (?, ?, ?, ?)",
-          [userName, userEmail, userPassword, userPhone],
+          "INSERT INTO ExcecutiveTable (name, email, password, phone, roomName) VALUES (?, ?, ?, ?,?)",
+          [userName, userEmail, userPassword, userPhone, uniqueId],
           function (err) {
             if (err) {
               return console.error(err.message);
             }
             console.log(`A new Excecutive log has been added with id ${this.lastID}`);
-            console.log(`${userEmail} || ${userPassword}`);
+            console.log(`${uniqueId} || ${userEmail} || ${userPassword}`);
           }
         );
+        
         res.redirect("/login");
       }
     }
   );
 });
 
-//Customer Database registration
+//Customer Database reg istration
 app.post("/api/register/customer", (req, res) => {
   const userName = req.body.name;
   const userEmail = req.body.email;
@@ -217,13 +186,13 @@ app.post("/api-jwt-excecutive", (req, res) => {
   const userPassword = req.body.password;
 
   ExcecutiveDB.get(
-    "SELECT * FROM ExcecutiveTable WHERE email = ?",
-    [userEmail],
+    "SELECT * FROM ExcecutiveTable WHERE email = ? AND password = ?",
+    [userEmail, userPassword],
     (err, row) => {
       if (err) {
         return console.error(err.message);
       }
-      if (!row) {
+      if (row.email !== userEmail) {
         return res.send(
           '<script>alert("Invalid Email Entered"); window.location.href = "/login";</script>'
         );
@@ -236,20 +205,20 @@ app.post("/api-jwt-excecutive", (req, res) => {
 
         // Check if the user is already logged in
         if (row.loggedIn) {
-          return res.status(401).send("User is already logged in");
+          return res.send(
+            '<script>alert("User is already logged in"); window.location.href = "/login";</script>'
+          );
         }
 
         // Set loggedIn flag to true in the database
         ExcecutiveDB.run(
-          "UPDATE ExcecutiveTable SET loggedIn = 1 WHERE email = ?",
-          [userEmail],
+          "UPDATE ExcecutiveTable SET loggedIn = 1 WHERE email = ? AND password = ?",
+          [userEmail,userPassword],
           (err) => {
             if (err) {
               return console.error(err.message);
             }
-            const token = jwt.sign({ email: row.email }, secretKey, {
-              expiresIn: "1h",
-            });
+            const token = jwt.sign({ email: row.email, password: row.password }, secretKey);
             console.log({ token });
             res.cookie("token", token, { httpOnly: true });
             res.redirect("/cholaReg");
@@ -266,49 +235,67 @@ app.post("/api-jwt-customer", (req, res) => {
   const userPassword = req.body.password;
 
   CustomerDB.get(
-    "SELECT * FROM CustomerTable WHERE email = ?",
-    [userEmail],
+    "SELECT * FROM CustomerTable WHERE email = ? AND password = ?",
+    [userEmail, userPassword],
     (err, row) => {
       if (err) {
         return console.error(err.message);
       }
       if (!row) {
         return res.send(
-          '<script>alert("Invalid Email Entered"); window.location.href = "/Cust_login";</script>'
-        );
-      } else {
-        if (row.password !== userPassword) {
-          return res.send(
-            '<script>alert("Invalid Password Entered"); window.location.href = "/Cust_login";</script>'
-          );
-        }
-
-        // Check if the user is already logged in
-        if (row.loggedIn) {
-          return res.status(401).send("User is already logged in");
-        }
-
-        // Set loggedIn flag to true in the database
-        CustomerDB.run(
-          "UPDATE CustomerTable SET loggedIn = 1 WHERE email = ?",
-          [userEmail],
-          (err) => {
-            if (err) {
-              return console.error(err.message);
-            }
-            const token = jwt.sign({ email: row.email }, secretKey, {
-              expiresIn: "1h",
-            });
-            console.log({ token });
-            res.cookie("token", token, { httpOnly: true });
-            res.redirect("/cholaReg");
-          }
+          '<script>alert("Invalid Email or Password Entered"); window.location.href = "/Cust_login";</script>'
         );
       }
+
+      // Check if the user is already logged in
+      if (row.loggedIn) {
+        return res.send(
+          '<script>alert("User is already logged in"); window.location.href = "/Cust_login";</script>'
+        );
+      }
+
+      // Set loggedIn flag to true in the database
+      CustomerDB.run(
+        "UPDATE CustomerTable SET loggedIn = 1 WHERE email = ? AND password = ?",
+        [userEmail, userPassword],
+        (err) => {
+          if (err) {
+            return console.error(err.message);
+          }
+          const token = jwt.sign({ email: row.email , password: row.password}, secretKey);
+          console.log({ token });
+          res.cookie("token", token, { httpOnly: true });
+          res.redirect("/cholaReg");
+        }
+      );
     }
   );
 });
 
+// API to join a room with JWT authentication and roomName verification
+app.post("/api-join-jwt", verifyToken, (req, res) => {
+  const uniqueID = req.body.roomName;
+
+  ExcecutiveDB.get(
+    "SELECT * FROM ExcecutiveTable WHERE roomName = ?",
+    [uniqueID],
+    (err, row) => {
+      if (err) {
+        return console.error(err.message);
+      }
+      if (!row || row.roomName !== uniqueID) {
+        // If the roomName doesn't match any unique ID in the database, deny access
+        return res.status(403).send("Access denied: Invalid roomName");
+      }
+
+      // If roomName is verified, generate JWT token for room access
+      const token = jwt.sign({ roomName: row.roomName }, secretKey);
+      console.log("Print :",{ token });
+      res.cookie("token", token, { httpOnly: true });
+      res.redirect("/cholaReg");
+    }
+  );
+});
 
 //logout from the Excecutive session by creating the loggedIn flag
 app.post("/logout/excecutive", (req, res) => {
@@ -324,11 +311,12 @@ app.post("/logout/excecutive", (req, res) => {
     }
 
     const userEmail = decoded.email;
+    const userPassword = decode.password;
 
     // Set loggedIn flag to false in the database
     ExcecutiveDB.run(
-      "UPDATE ExcecutiveTable SET loggedIn = 0 WHERE email = ?",
-      [userEmail],
+      "UPDATE ExcecutiveTable SET loggedIn = 0 WHERE email = ? AND password = ? ",
+      [userEmail, userPassword],
       (err) => {
         if (err) {
           return console.error(err.message);
@@ -355,10 +343,11 @@ app.post("/logout/customer", (req, res) => {
     }
 
     const userEmail = decoded.email;
+    const userPassword = decode.password;
 
     CustomerDB.run(
-      "UPDATE CustomerTable SET loggedIn = 0 WHERE email = ?",
-      [userEmail],
+      "UPDATE CustomerTable SET loggedIn = 0 WHERE email = ? AND password = ?",
+      [userEmail, userPassword],
       (err) => {
         if (err) {
           return console.error(err.message);
@@ -372,7 +361,8 @@ app.post("/logout/customer", (req, res) => {
 
 
 // Specify the folder where you want to save the screenshots
-const saveFolderPath = "C:\Users\intern-navneet\Desktop\video-KYC\ScreenShot";
+const saveFolderPath = "C:\\Users\\intern-navneet\\Desktop\\video-KYC\\ScreenShot";
+
 
 // API to get the screenshot of the video call page.
 app.get("/screenshot", async (req, res) => {
@@ -508,24 +498,41 @@ io.on("connection", function (socket) {
   console.log("Client is connected: " + socket.id);
 
   socket.on("Join", function (roomName) {
-    var rooms = io.sockets.adapter.rooms; // Here rooms is the variable created socket.io  to store all the available room names in an object format.
-
-    var room = rooms.get(roomName);
-
-    if (room == undefined) {
-      socket.join(roomName);
-      socket.emit("joined");
-      socket.emit("created"); // console.log("Room Created");  --> it states that the room is CREATED.
-    } else if (room.size == 1) {   
-      socket.join(roomName);
-      socket.emit("joined"); // --> it states that the room is joined by the user
-    } else {
-      console.log("Can't join ! Room is full");
-      socket.emit("full");
-    }
-
-    // console.log(rooms);
+    // Check if the roomName matches any unique ID in the database
+    ExcecutiveDB.get(
+      "SELECT * FROM ExcecutiveTable WHERE roomName = ?",
+      [roomName],
+      (err, row) => {
+        if (err) {
+          return console.error(err.message);
+        }
+  
+        if (!row || row.roomName !== roomName) {
+          // If the roomName doesn't match any unique ID in the database, emit an error event
+          socket.emit("invalidRoom");
+          
+        } else {
+          // If roomName is verified, check if the room exists or is already full
+          var rooms = io.sockets.adapter.rooms;
+          var room = rooms.get(roomName);
+  
+          if (room === undefined) {
+            // Room doesn't exist, create and join it
+            socket.join(roomName);
+            socket.emit("created");
+          } else if (room.size == 1) {   
+            // Room exists and has one participant, join it
+            socket.join(roomName);
+            socket.emit("joined");
+          } else {
+            // Room is full, emit a full event
+            socket.emit("full");
+          }
+        }
+      }
+    );
   });
+  
   //At first, [ signaling server]
   socket.on("ready", function (roomName) {
     //Now we broadcast the message to inform the user that the client has joined his room.

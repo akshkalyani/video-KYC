@@ -12,7 +12,9 @@
 <body>
     <div id="video-chat-form">
         <h2 class="text">Cholamandalam Meeting</h2>
-        <input id="roomName" type="text" name="roomName" placeholder="Room Name" />
+        <form action="api-join-jwt" method="POST">
+        <input id="roomName" type="text" name="roomName" placeholder="Room Name" required/>
+        </form>
         <button id="join">Join</button>
     </div>
     <div id="video-chat-rooms">
