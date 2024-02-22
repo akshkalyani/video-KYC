@@ -225,7 +225,7 @@ app.post("/api-join-jwt", (req, res) => {
         if (err) {
           return console.error(err.message);
         }
-        if (!row || row.roomName !== description) {
+        if (!row || row.description !== description) {
           // If the roomName doesn't match any unique ID in the database, deny access
           return res.status(403).send(
             '<script>alert("Access denied: Invalid roomName")</script>'
@@ -240,8 +240,6 @@ app.post("/api-join-jwt", (req, res) => {
     );
   });
 });
-
-
 // Specify the folder where you want to save the screenshots
 const saveFolderPath = "C:\\Users\\intern-navneet\\Desktop\\video-KYC\\ScreenShot";
 
@@ -306,10 +304,9 @@ app.get("/api/delete-all-Customer-logs", (req, res) => {
   });
 });
 
-//OTP Generation
-app.post('/generate-otp', async (req, res) => {
+app.post('/send-otp', async (err,res)=>{
   try {
-    const generatedOtp = req.body.otp || generateOtp();
+    const generatedOtp = generateOTP();
 
     const response = await axios.post('https://d2c-communication-uat.chola.murugappa.com/SMS/SEND', {
       enterpriseid: "chfinotp",
@@ -350,9 +347,14 @@ app.post('/generate-otp', async (req, res) => {
   }
 });
 
-function generateOtp() {
-  // Generate a random 4-digit OTP
-  return Math.floor(1000 + Math.random() * 9000);
+function generateOTP(){
+  let digit = '0123456789abcdefghijklmnopqrstuvwxyz';
+  let OTP = '';
+
+  for(let i = 0; i < 6; i++){
+    OTP+= digit[Math.floor(Math.random() * 10)];
+  }
+  return OTP;
 }
 
 const server = app.listen(port, () => {
