@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Excecutive Meeting Log</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="">
+</head>
+
+<body>
+
+    <h1>Meeting Log</h1>
+    <hr>
+    <table class="table" border="2" style="background: #79cbff;">
+        <thead>
+            <tr>
+                <th scope="col">
+                    <h2>Starting Time</h2>
+                </th>
+                <th scope="col">
+                    <h2>Date</h2>
+                </th>
+                <th scope="col">
+                    <h2>Day</h2>
+                </th>
+                <th scope="col">
+                    <h2>JoinID</h2>
+                </th>
+                <th>Click to Join</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% data.forEach(row=> { %>
+                <tr>
+                    <td>
+                        <%=row.time %>
+                    </td>
+                    <td>
+                        <%= row.date %>
+                    </td>
+                    <td>
+                        <%= row.day %>
+                    </td>
+                    <td>
+                        <%= row.description %>
+                    </td>
+                    <td>
+                        <a href="/cholaReg">Join</a>
+                    </td>
+
+                </tr>
+
+                <% }); %>
+        </tbody>
+    </table>
+</body>
+
+</html>

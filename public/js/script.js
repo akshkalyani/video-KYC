@@ -8,8 +8,6 @@ const userVideo = document.getElementById("user-video");
 const peerVideo = document.getElementById("peer-video");
 var otpGeneratorBtn = document.getElementById("otpGenerator");
 var screenshotButton = document.getElementById("screen-shot");
-var logoutBtn = document.getElementById("logout");
-// working with buttons
 var BtnGroup = document.getElementById("btn-group");
 var muteBtn = document.getElementById("mute-btn");
 var HideCamBtn = document.getElementById("Hide-cam");
@@ -57,48 +55,6 @@ joinBtn.addEventListener("click", function () {
   }
 });
 
-// Add event listener for logout button
-logoutBtn.addEventListener("click", function () {
-  fetch("/logout/excecutive", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "same-origin",
-  })
-    .then(function (response) {
-      if (response.redirected) {
-        window.location.href = response.url;
-        recorder.stop();
-      }
-    })
-
-    .catch(function (error) {
-      console.error("Error logging out:", error);
-      recorder.stop(); // Stopping the recorder after redirecting
-    });
-});
-
-logoutBtn.addEventListener("click", function () {
-  fetch("/logout/customer", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "same-origin",
-  })
-    .then(function (response) {
-      if (response.redirected) {
-        window.location.href = response.url;
-        recorder.stop();
-      }
-    })
-
-    .catch(function (error) {
-      console.error("Error logging out:", error);
-      recorder.stop(); // Stopping the recorder after redirecting
-    });
-});
 recordBtn.addEventListener("click", async () => {
   try {
     const stream = await navigator.mediaDevices.getDisplayMedia({
