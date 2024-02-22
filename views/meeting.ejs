@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedule Meeting</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #ADD8E6;
+        }
+
+        form {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input[type="time"],
+        input[type="date"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: blue;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: red;
+        }
+
+        button:active {
+            background-color: #3e8e41;
+        }
+
+        button:focus {
+            outline: none;
+        }
+
+        /* Adjustments for smaller screens */
+        @media screen and (max-width: 600px) {
+            form {
+                width: 80%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <form id="meetingForm">
+        <h2 style="text-align: center;">Chola Schedule</h2>
+        <hr>
+        <label for="time">Time <i>(hh:mm):</i></label>
+        <input type="time" id="time" name="time" required><br><br>
+
+        <label for="date">Date:</label>
+        <input type="date" id="date" name="date" required><br><br>
+
+        <label for="description">JoinID:</label>
+        <textarea id="description" name="description" rows="4" cols="50"></textarea><br><br>
+
+        <button type="submit">Schedule Meeting</button><br><br>
+        <button type="button" id="previewButton" style="background-color: #3e8e41;">Preview</button>
+    </form>
+
+    <script>
+        document.getElementById("previewButton").addEventListener("click", function(event) {
+            window.location.href = "/Meet";
+        });
+
+        document.getElementById("meetingForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            const meetingData = {};
+            formData.forEach((value, key) => {
+                meetingData[key] = value;
+            });
+            fetch("/schedule-meeting", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(meetingData)
+                })
+                .then(response => response.text())
+                .then(message => {
+                    alert(message);
+                    document.getElementById("meetingForm").reset();
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                    alert("Error scheduling meeting");
+                });
+        });
+    </script>
+</body>
+
+</html>

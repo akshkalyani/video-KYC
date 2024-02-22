@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>Excecutive Registeration</title>
+    <title>Customer Registeration</title>
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.4.1/css/all.css"
         integrity="sha384-5sAR7xN1Nv6T6+dT2mhtzEpVJvfS3NScPQTrOxhwjIuvcA67KV2R5Jz6kr4abQsz" crossorigin="anonymous">
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700" rel="stylesheet">
@@ -82,7 +82,7 @@
         }
 
         button:hover {
-            background: red;
+            background: #00008B;
         }
 
         @media (min-width: 568px) {
@@ -120,18 +120,16 @@
             <i class="fas fa-at"></i>
             <i class="fas fa-mail-bulk"></i>
         </div>
-        <form action="/api/register/excecutive" method="POST">
-            <h1>Excecutive Registration</h1>
+        <form action="/api/register/customer" method="POST">
+            <h1>Customer Registration</h1>
             <div class=" info">
                 <input class="fname" type="text" name="name" placeholder="User name" autocomplete="off" required>
                 <input type="email" name="email" placeholder="Email" autocomplete="off" required>
                 <input type="password" name="password" placeholder="Password" autocomplete="off" required>
                 <input type="tel" name="phone" placeholder="Phone number" autocomplete="off" required>
-                <input type="text" name="roomName" placeholder="Unique ID" autocomplete="off" required>
                 <input type="date" name="age" placeholder="age" autocomplete="off" required>
             </div>
             <button type="submit" href="/" style="box-shadow: 10px 10px 5px lightblue;">Submit</button>
-            
         </form>
 
     </div>

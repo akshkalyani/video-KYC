@@ -8,8 +8,6 @@ const userVideo = document.getElementById("user-video");
 const peerVideo = document.getElementById("peer-video");
 var otpGeneratorBtn = document.getElementById("otpGenerator");
 var screenshotButton = document.getElementById("screen-shot");
-var logoutBtn = document.getElementById("logout");
-// working with buttons
 var BtnGroup = document.getElementById("btn-group");
 var muteBtn = document.getElementById("mute-btn");
 var HideCamBtn = document.getElementById("Hide-cam");
@@ -57,27 +55,6 @@ joinBtn.addEventListener("click", function () {
   }
 });
 
-// Add event listener for logout button
-logoutBtn.addEventListener("click", function () {
-  fetch("/logout", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "same-origin",
-  })
-    .then(function (response) {
-      if (response.redirected) {
-        window.location.href = response.url;
-        recorder.stop();
-      }
-    })
-
-    .catch(function (error) {
-      console.error("Error logging out:", error);
-      recorder.stop(); // Stopping the recorder after redirecting
-    });
-});
 recordBtn.addEventListener("click", async () => {
   try {
     const stream = await navigator.mediaDevices.getDisplayMedia({
@@ -209,11 +186,11 @@ socket.on("ready", function () {
     rtcPeerConnection.onicecandidate = OnIceCandidateFunction;
     //ontrack function is used to make a audio and video connection vissible to peers
     rtcPeerConnection.ontrack = onTrackFunction;
-
+ 
     //addTrack is used to send the userVideo, audio to peer side
     rtcPeerConnection.addTrack(userStream.getTracks()[0], userStream); // for audio track 0th index
     rtcPeerConnection.addTrack(userStream.getTracks()[1], userStream); // for video track 1st index
-
+ 
     rtcPeerConnection.createOffer(
       function (offer) {
         rtcPeerConnection.setLocalDescription(offer);
@@ -237,7 +214,7 @@ socket.on("offer", function (offer) {
     rtcPeerConnection.onicecandidate = OnIceCandidateFunction;
     //ontrack function is used to make a audio and video connection vissible to peers
     rtcPeerConnection.ontrack = onTrackFunction;
-
+ 
     //addTrack is used to send the userVideo, audio to peer side
     rtcPeerConnection.addTrack(userStream.getTracks()[0], userStream); // for audio track 0th index
     rtcPeerConnection.addTrack(userStream.getTracks()[1], userStream); // for video track 1st index
@@ -256,34 +233,34 @@ socket.on("offer", function (offer) {
 socket.on("answer", function (answer) {
   rtcPeerConnection.setRemoteDescription(answer);
 });
-
+ 
 //leaving rhe call by click event listener
 leaveRoomBtn.addEventListener("click", function () {
   //.addEventListener is used to invoke the click function which checks the below condition.
   socket.emit("leave", roomName);
-
+ 
   videoChatForm.style = "display:block";
   BtnGroup.style = "display:none";
-
+ 
   //here if user clicks the button below thing will invoke
   if (userVideo.srcObject) {
     userVideo.srcObject.getTracks()[0].stop();
     userVideo.srcObject.getTracks()[1].stop();
   }
   // here if peer click the button it will invoke
-
+ 
   if (peerVideo.srcObject) {
     peerVideo.srcObject.getTracks()[0].stop();
     peerVideo.srcObject.getTracks()[1].stop();
   }
-
+ 
   if (rtcPeerConnection) {
     rtcPeerConnection.ontrack = null;
     rtcPeerConnection.onicecandidate = null;
     rtcPeerConnection.close();
   }
 });
-
+ 
 socket.on("leave", function () {
   //here if I give "creator = true" means if user1 leaves the call the user2 will be assingned the role
   // but since being an excecutive call cannot make it true.
@@ -291,13 +268,13 @@ socket.on("leave", function () {
     peerVideo.srcObject.getTracks()[0].stop();
     peerVideo.srcObject.getTracks()[1].stop();
   }
-
+ 
   // Cleanup peerVideo
   if (peerVideo.srcObject) {
     peerVideo.srcObject.getTracks().forEach((track) => track.stop());
     peerVideo.srcObject = null;
   }
-
+ 
   // Close rtcPeerConnection
   if (rtcPeerConnection) {
     rtcPeerConnection.ontrack = null;
@@ -310,7 +287,7 @@ function OnIceCandidateFunction(event) {
     socket.emit("candidate", event.candidate, roomName);
   }
 }
-
+ 
 function onTrackFunction(event) {
   peerVideo.srcObject = event.streams[0]; // event.stream is an array where at 0th index audio and video is stored and we store it in peerVideo.srcObject
   peerVideo.onloadedmetadata = function (e) {
@@ -318,3 +295,13 @@ function onTrackFunction(event) {
   };
 }
 
+// on click event
+videoChatForm.addEventListener("submit", function (event) {
+  event.preventDefault();
+  var roomName = document.getElementById("roomName").value; // getting room value and store it to the variable
+  if (roomName === "") {
+    alert("Please enter a room name"); // if entered value is empty then alert will appear.
+  } else {
+    window.location.href = "/room/" + roomName; // if value entered is correct then it will redirect it to next page.
+  }
+});

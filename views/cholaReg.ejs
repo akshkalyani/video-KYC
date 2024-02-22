@@ -6,14 +6,15 @@
     <title>Video Call meeting</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.3/socket.io.js"></script>
     <script src="https://cdn.socket.io/socket.io-3.0.1.min.js"></script>
-    
+
     <link href="css/style.css" rel="stylesheet" />
 </head>
-
 <body>
     <div id="video-chat-form">
         <h2 class="text">Cholamandalam Meeting</h2>
-        <input id="roomName" type="text" name="roomName" placeholder="Room Name" />
+        <form action="api-join-jwt" method="POST">
+        <input id="roomName" type="text" name="roomName" placeholder="Room Name" autocomplete="off" required/>
+        </form>
         <button id="join">Join</button>
     </div>
     <div id="video-chat-rooms">
@@ -21,12 +22,11 @@
         <video id="peer-video"></video>
     </div>
     <div class="btn-group" id="btn-group" style="display: none">
-        <button id="mute-btn">Mute</button>4
+        <button id="mute-btn">Mute</button>
         <button id="leave-btn">Leave Room</button>
         <button id="Hide-cam">Hide Cam</button>
         <button id="screen-shot">ScreenShot</button>
         <button id="record-btn">Record</button>
-        </button> <button id="logout">Logout</button>
         <button id="generate-otp-btn">Send OTP</button>
     </div>
 
